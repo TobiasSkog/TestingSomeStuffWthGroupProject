@@ -1,10 +1,12 @@
-﻿namespace GroupProject.App.BankManagement.Interfaces
+﻿using GroupProject.App.BankManagement.Account;
+
+namespace GroupProject.App.BankManagement.Interfaces
 {
     public interface ITransaction
     {
-        void DepositMoney(decimal balance, string accNumber);
-        void WithdrawMoney(decimal balance, string accNumber);
-        void TransferMoney(decimal balance, string userAccNumber, string destAccNumber);
-        void CheckBalance(string accNumber);
+        void DisplayRentFromDeposit(decimal depositAmount, int timeFrame);
+        void DepositMoney(decimal depositAmount, AccountBase userAccount);
+        void WithdrawMoney(decimal withdrawAmount, AccountBase userAccount);
+        void TransferMoney(decimal transferAmount, AccountBase userAccount, AccountBase targetAccount);
     }
 }

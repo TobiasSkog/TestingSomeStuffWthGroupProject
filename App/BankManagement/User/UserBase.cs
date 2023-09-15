@@ -1,5 +1,6 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.BankManagement.User.Customer;
+using GroupProject.App.ConsoleHandling;
 using GroupProject.App.Tests;
 using GroupProject.BankDatabase;
 using System.ComponentModel.DataAnnotations;
@@ -9,9 +10,10 @@ namespace GroupProject.App.BankManagement.User
 {
     public abstract class UserBase : Bank
     {
-        protected virtual string _firstName { get; set; }
-        protected virtual string _lastName { get; set; }
-        protected virtual string _userName { get; set; }
+        public virtual string FirstName { get; private set; }
+        public virtual string LastName { get; private set; }
+        public virtual string UserName { get; private set; }
+        public virtual sbyte RemainingAttempts { get; private set; }
         protected virtual string _password { get; set; }
         protected virtual string _userId { get; set; }
 
@@ -20,29 +22,28 @@ namespace GroupProject.App.BankManagement.User
         protected virtual DateTime _dateOfBirth { get; set; }
         protected virtual UserType _userType { get; set; }
         protected virtual UserStatus _userStatus { get; set; }
-        protected virtual sbyte _remainingAttempts { get; set; }
         protected virtual List<AccountBase> _accounts { get; set; }
+        protected virtual List<string> _userLog { get; set; }
+
+
 
         public UserBase(string firstName, string lastName, string socialSecurityNumber, DateTime dateOfBirth, UserType userType)
         {
             if (BoolValidationHelper.ValidateAgeRestriction(dateOfBirth, 1))
             {
-                _firstName = firstName;
-                _lastName = lastName;
-                _userName = firstName + lastName;
+                FirstName = firstName;
+                LastName = lastName;
+                UserName = firstName + lastName;
                 _password = socialSecurityNumber + firstName;
                 _socialSecurityNumber = socialSecurityNumber;
                 _dateOfBirth = dateOfBirth;
                 _userType = userType;
                 _userStatus = UserStatus.Exists;
-                _remainingAttempts = 3;
+                RemainingAttempts = 3;
                 _userId = StringValidationHelper.CreateRandomString();
 
             }
         }
-        public virtual string FirstName => _firstName;
-        public virtual string UserName => _userName;
-        public virtual sbyte RemainingAttempts => _remainingAttempts;
         public virtual UserType GetUserType() => _userType;
         public virtual string UserId(UserType userType)
         {
@@ -67,15 +68,20 @@ namespace GroupProject.App.BankManagement.User
         {
             if (userType == UserType.Admin)
             {
-                return new UserStorage(_userName, _userId, _accounts);
+                return new UserStorage(UserName, _userId, _accounts);
             }
 
             return null;
         }
+
+        public virtual void AddToLog(string log)
+        {
+            _userLog.Add(log);
+        }
         public virtual void AddAccount(AccountBase account) => _accounts.Add(account);
         public virtual UserStatus ExistingAccount(string userName)
         {
-            if (userName == _userName)
+            if (userName == UserName)
             {
                 return UserStatus.Exists;
             }
@@ -83,13 +89,13 @@ namespace GroupProject.App.BankManagement.User
         }
         public virtual UserStatus Login(string userName)
         {
-            _remainingAttempts--;
+            RemainingAttempts--;
 
-            if (_remainingAttempts <= 0 || _userStatus == UserStatus.Locked)
+            if (RemainingAttempts <= 0 || _userStatus == UserStatus.Locked)
             {
                 return UserStatus.Locked;
             }
-            if (userName == _userName)
+            if (userName == UserName)
             {
                 string password = PasswordValidationHelper.PasswordValidation("Enter password: ", 2, 113, false, false, false);
                 if (password == _password)
@@ -99,6 +105,31 @@ namespace GroupProject.App.BankManagement.User
             }
             return UserStatus.FailedLogin;
         }
-
+        public virtual List<string> UserLog(UserType userType)
+        {
+            if (userType == UserType.Admin)
+            {
+                return _userLog;
+            }
+            return null;
+        }
+        public virtual bool ListAccounts()
+        {
+            if (_accounts.Count == 0)
+            {
+                bool createAccount = BoolValidationHelper.PromptForYesOrNo("You have no accounts yet, would you like to create one: ");
+                return createAccount;
+            }
+            ConsoleIO.WriteAccountList(_accounts, this);
+            return false;
+        }
+        public virtual List<AccountBase> Accounts(UserType userType)
+        {
+            if (userType == UserType.Admin)
+            {
+                return _accounts;
+            }
+            return null;
+        }
     }
 }

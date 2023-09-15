@@ -23,7 +23,6 @@ namespace GroupProject.App.LogicHandling
                 {
 
                     case UserChoice.Login:
-
                         user = DB.FindUserInDatabase();
                         if (user == null)
                         {
@@ -52,13 +51,16 @@ namespace GroupProject.App.LogicHandling
                             case UserStatus.FailedLogin:
                                 Console.WriteLine($"Failed Login! {user.RemainingAttempts} attempts remaining.");
                                 break;
+
                             case UserStatus.Locked:
                                 ConsoleIO.WriteLockedMenu();
                                 break;
+
                             default:
                                 break;
                         }
                         break;
+
                     case UserChoice.CreateAccount:
                         choice = ConsoleIO.WriteCustomerCreateAccount();
                         switch (choice)
@@ -72,6 +74,7 @@ namespace GroupProject.App.LogicHandling
                                     choice = UserChoice.Back;
                                 }
                                 break;
+
                             case UserChoice.CreateSavingsAccount:
                                 if (user != null)
                                 {
@@ -83,6 +86,7 @@ namespace GroupProject.App.LogicHandling
                                 break;
                         }
                         break;
+
                     case UserChoice.CreateUserAccount:
                         if (user.GetUserType() == UserType.Customer)
                         {
@@ -91,7 +95,7 @@ namespace GroupProject.App.LogicHandling
                         }
                         choice = ConsoleIO.WriteCreateUserAccount();
                         break;
-                    // IM HERE
+
                     case UserChoice.CreateCustomerAccount:
                         if (user != null)
                         {
@@ -100,6 +104,7 @@ namespace GroupProject.App.LogicHandling
                             choice = UserChoice.Back;
                         }
                         break;
+
                     case UserChoice.CreateAdminAccount:
                         if (user != null)
                         {
@@ -109,45 +114,65 @@ namespace GroupProject.App.LogicHandling
                         }
                         break;
 
-                    // I'M HERE!!!!
                     case UserChoice.ListAllAccounts:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = ListAllAccounts();
+                        if (user.GetUserType() == UserType.Customer)
+                        {
+
+                            bool createAccount = user.ListAccounts();
+                            if (createAccount)
+                            {
+                                choice = ConsoleIO.WriteCustomerCreateAccount();
+                                break;
+                            }
+                        }
+                        choice = UserChoice.Back;
                         break;
+
+                    // I'M HERE!!!!
                     case UserChoice.UpdateCurrencyExchange:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = UpdateCurrencyExchange();
+                        if (user.GetUserType() == UserType.Admin)
+                        {
+                            UserAdmin userAdmin = (UserAdmin)user;
+                            userAdmin.UpdateCurrencyExchange();
+                        }
+                        choice = UserChoice.Back;
                         break;
+
                     case UserChoice.MakeDeposit:
                         Console.WriteLine("Not implemented yet :)");
                         choice = UserChoice.Exit;
                         //choice = MakeDeposit();
                         break;
+
                     case UserChoice.MakeWithdrawal:
                         Console.WriteLine("Not implemented yet :)");
                         choice = UserChoice.Exit;
                         //choice = MakeWithdrawal();
                         break;
+
                     case UserChoice.LoanMoney:
                         Console.WriteLine("Not implemented yet :)");
                         choice = UserChoice.Exit;
                         //choice = LoanMoney();
                         break;
+
                     case UserChoice.ShowLog:
                         Console.WriteLine("Not implemented yet :)");
                         choice = UserChoice.Exit;
                         //choice = ShowLog();
                         break;
+
                     case UserChoice.Back:
                         choice = previousChoice;
                         break;
+
                     case UserChoice.Logout:
                         choice = ConsoleIO.WriteWelcomeMenu();
                         break;
+
                     case UserChoice.Exit:
                         return UserChoice.Exit;
+
                     default:
                         break;
                 }

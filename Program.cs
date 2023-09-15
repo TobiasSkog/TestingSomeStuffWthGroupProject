@@ -1,4 +1,5 @@
 ﻿using GroupProject.App;
+// TRANSACTIONSCHEDULER CHANGE TIMESPAN.FROMSECONDS TO MINUTES!!!!!!!!
 
 App.Run();
 

@@ -1,5 +1,6 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.BankManagement.User.Customer;
+using GroupProject.App.ConsoleHandling;
 using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.User.Admin
@@ -10,6 +11,10 @@ namespace GroupProject.App.BankManagement.User.Admin
         {
         }
 
+        public UserChoice UpdateCurrencyExchange()
+        {
+            return UserChoice.Back;
+        }
 
     }
 }

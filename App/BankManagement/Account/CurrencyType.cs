@@ -1,8 +1,7 @@
 ﻿namespace GroupProject.App.BankManagement.Account
 {
-    public enum AccountStatus
+    public enum CurrencyType
     {
-        Active,
-        Locked
+        SEK,
     }
 }

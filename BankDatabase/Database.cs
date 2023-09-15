@@ -3,6 +3,7 @@ using GroupProject.App.BankManagement.User;
 using GroupProject.App.ConsoleHandling;
 using Newtonsoft.Json;
 using Spectre.Console;
+using System.ComponentModel;
 using ValidationUtility;
 
 namespace GroupProject.BankDatabase

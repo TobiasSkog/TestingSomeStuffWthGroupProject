@@ -1,4 +1,5 @@
-﻿using GroupProject.App.BankManagement.Account.BankAccounts;
+﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
@@ -126,20 +127,20 @@ namespace GroupProject.App.ConsoleHandling
             UserChoice enumChoice = EnumValidationHelper.GetSpecificEnumValue<UserChoice>(userChoice.Trim());
             return enumChoice;
         }
-        internal static UserChoice WriteCustomerCreateSavingsAccount()
-        {
-            AnsiConsole.Clear();
+        //internal static UserChoice WriteCustomerCreateSavingsAccount()
+        //{
+        //    AnsiConsole.Clear();
 
 
-            return UserChoice.Back;
-        }
-        public static UserChoice WriteCustomerCreateCheckingsAccount()
-        {
-            AnsiConsole.Clear();
+        //    return UserChoice.Back;
+        //}
+        //public static UserChoice WriteCustomerCreateCheckingsAccount()
+        //{
+        //    AnsiConsole.Clear();
 
 
-            return UserChoice.Back;
-        }
+        //    return UserChoice.Back;
+        //}
         public static UserChoice WriteAdminMenu()
         {
             AnsiConsole.Clear();
@@ -200,6 +201,27 @@ namespace GroupProject.App.ConsoleHandling
 
                 Thread.Sleep(1000);
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
+            }
+        }
+
+        public static void WriteAccountList(List<AccountBase> accounts, UserBase user)
+        {
+            Grid grid = new();
+
+            grid.AddColumns(3);
+            grid.AddRow(new Text[]{
+                new Text($"{user.FirstName}", new Style(Color.MediumPurple2, Color.Black)).LeftJustified(),
+                new Text($"{user.SocialSecurityNumber(UserType.Admin)}", new Style(Color.MediumPurple2, Color.Black)).Centered(),
+                new Text($"Time: {DateTime.UtcNow:D}", new Style(Color.MediumPurple2, Color.Black)).RightJustified(),
+            });
+
+            foreach (AccountBase account in accounts)
+            {
+                grid.AddRow(new Text[]{
+                    new Text($"{account.GetBalance(UserType.Admin)}{account.GetCurrencyType(UserType.Admin)}", new Style(Color.LightSteelBlue, Color.Black)).LeftJustified(),
+                    new Text($"{account.GetAccountNumber(UserType.Admin)}", new Style(Color.LightSteelBlue, Color.Black)).Centered(),
+                    new Text($"{account.GetAccountType(UserType.Admin)}", new Style(Color.LightSteelBlue, Color.Black)).RightJustified(),
+                });
             }
         }
 

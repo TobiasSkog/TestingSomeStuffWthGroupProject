@@ -3,10 +3,8 @@ using Spectre.Console;
 
 namespace GroupProject.App.BankManagement
 {
-
     public abstract class Bank
     {
-
 
     }
 }

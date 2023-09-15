@@ -6,13 +6,11 @@ using System.Threading.Tasks;
 
 namespace GroupProject.App.BankManagement.User.Contact
 {
-    internal class ContactInformation
+    public class ContactInformation
     {
-        protected virtual string _email { get; set; }
-        protected virtual string _phoneNumber { get; set; }
-        protected virtual string _mobileNumer { get; set; }
-        protected virtual string _street { get; set; }
-        protected virtual string _city { get; set; }
-        protected virtual string _postalNumber { get; set; }
+        protected virtual Email _email { get; set; }
+        protected virtual Phone _phone { get; set; }
+        protected virtual Adress _adress { get; set; }
+
     }
 }
