@@ -19,15 +19,31 @@ namespace GroupProject.BankDatabase
         }
         internal void InitiateDataBase()
         {
-            ConsoleIO.StartUp();
-            List<UserStorage> userStorageList = _users
-                .Select(user => user.ToUserStorage(_admin))
-                .ToList();
-
-            using (StreamWriter sw = File.CreateText(FilePath))
+            try
             {
-                JsonSerializer serializer = new JsonSerializer();
-                serializer.Serialize(sw, userStorageList);
+                List<UserStorage> userStorageList = _users
+                    .Select(user => user.ToUserStorage(_admin))
+                    .ToList();
+
+                using (StreamWriter file = File.CreateText("Database\\FunkarDettaEller.txt"))
+                {
+                    JsonSerializer gg = new JsonSerializer();
+                    gg.Serialize(file, _users);
+                }
+
+
+                using (StreamWriter sw = File.CreateText(FilePath))
+                {
+                    JsonSerializer serializer = new JsonSerializer();
+                    serializer.Serialize(sw, userStorageList);
+                }
+
+                ConsoleIO.StartUp();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                ValidationUtility.ExceptionHelper.ExceptionDetails(ex);
             }
         }
         //string json = JsonConvert.SerializeObject(UserBase, Formatting.Indented);

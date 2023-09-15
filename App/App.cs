@@ -24,6 +24,11 @@ namespace GroupProject.App
                 new UserCustomer("Gabba",  "Svensson",  "886641486516", new DateTime(2015, 9,  22), UserType.Customer),
                 new UserCustomer("Habba",  "Svensson",  "888448484316", new DateTime(2018, 7,  26), UserType.Customer)
             };
+            foreach (var usr in bankUsers)
+            {
+                Console.WriteLine(usr);
+            }
+
 
             /*     Aldor login:
              * Username: AldorAdmin

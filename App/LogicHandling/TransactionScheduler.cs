@@ -1,5 +1,7 @@
 ﻿using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
 using GroupProject.App.BankManagement.User;
+using System;
+using System.Threading.Channels;
 
 namespace GroupProject.App.LogicHandling
 {
@@ -11,12 +13,15 @@ namespace GroupProject.App.LogicHandling
         private List<Transaction> _pendingTransactions = new List<Transaction>();
         public TransactionScheduler(int timerDelayMinutes)
         {
+            Console.WriteLine("Test");
 
             _timer = new Timer(ExecuteScheduledTransaction, null, TimeSpan.Zero, TimeSpan.FromSeconds(timerDelayMinutes));
         }
 
         private void ExecuteScheduledTransaction(object state)
         {
+            Console.WriteLine("Test22");
+
             Console.WriteLine("Executing scheduled transaction at: " + DateTime.Now);
             if (_pendingTransactions.Count > 0)
             {

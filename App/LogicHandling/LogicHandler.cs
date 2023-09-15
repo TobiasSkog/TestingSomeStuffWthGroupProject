@@ -88,7 +88,7 @@ namespace GroupProject.App.LogicHandling
                         break;
 
                     case UserChoice.CreateUserAccount:
-                        if (user.GetUserType() == UserType.Customer)
+                        if (user?.GetUserType() != UserType.Admin)
                         {
                             choice = UserChoice.CreateCustomerAccount;
                             break;
