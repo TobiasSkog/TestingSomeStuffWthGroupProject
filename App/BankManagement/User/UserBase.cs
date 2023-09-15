@@ -1,8 +1,10 @@
-﻿using GroupProject.App.Tests;
+﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.Tests;
+using GroupProject.BankDatabase;
 using System.ComponentModel.DataAnnotations;
 using ValidationUtility;
 
-namespace GroupProject.Bank.User
+namespace GroupProject.App.BankManagement.User
 {
     public abstract class UserBase : Bank
     {
@@ -10,19 +12,20 @@ namespace GroupProject.Bank.User
         protected virtual string _lastName { get; set; }
         protected virtual string _userName { get; set; }
         protected virtual string _password { get; set; }
+        protected virtual string _userId { get; set; }
 
-        [StringLength(12, MinimumLength = 8, ErrorMessage = "Social security numbers must be 8 or 12 characters.")]
+        [StringLength(12, MinimumLength = 3, ErrorMessage = "Social security numbers must be 3 or 12 characters.")]
         protected virtual string _socialSecurityNumber { get; set; }
         protected virtual DateTime _dateOfBirth { get; set; }
         protected virtual UserType _userType { get; set; }
         protected virtual UserStatus _userStatus { get; set; }
-        protected sbyte _remainingAttempts { get; set; }
+        protected virtual sbyte _remainingAttempts { get; set; }
+        protected virtual AccountBase[] _accounts { get; set; }
 
         public UserBase(string firstName, string lastName, string socialSecurityNumber, DateTime dateOfBirth, UserType userType)
         {
-            if (BoolValidationHelper.ValidateAgeRestriction(dateOfBirth, 18))
+            if (BoolValidationHelper.ValidateAgeRestriction(dateOfBirth, 1))
             {
-
                 _firstName = firstName;
                 _lastName = lastName;
                 _userName = firstName + lastName;
@@ -32,12 +35,19 @@ namespace GroupProject.Bank.User
                 _userType = userType;
                 _userStatus = UserStatus.Exists;
                 _remainingAttempts = 3;
+                _userId = CharValidationHelper.CreateRandomUserId();
+
             }
         }
+        public UserStorage ToUserStorage()
+        {
+            return new UserStorage(_userName, _userId);
+        }
         public virtual string FirstName => _firstName;
-        public virtual string LastName => _lastName;
+        public virtual string UserName => _userName;
+        public virtual string UserId => _userId;
         public virtual sbyte RemainingAttempts => _remainingAttempts;
-
+        public virtual UserType GetUserType() => _userType;
         public virtual UserStatus ExistingAccount(string userName)
         {
             if (userName == _userName)
@@ -46,7 +56,7 @@ namespace GroupProject.Bank.User
             }
             return UserStatus.DoesNotExist;
         }
-        public virtual UserStatus Login(string userName, string password)
+        public virtual UserStatus Login(string userName)
         {
             _remainingAttempts--;
 
@@ -54,11 +64,9 @@ namespace GroupProject.Bank.User
             {
                 return UserStatus.Locked;
             }
-
-
-
             if (userName == _userName)
             {
+                string password = PasswordValidationHelper.PasswordValidation("Enter password: ", 2, 113, false, false, false);
                 if (password == _password)
                 {
                     return UserStatus.Success;
@@ -74,6 +82,5 @@ namespace GroupProject.Bank.User
             }
             return default;
         }
-
     }
 }

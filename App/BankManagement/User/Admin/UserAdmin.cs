@@ -1,12 +1,4 @@
-﻿using GroupProject.App.Tests;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ValidationUtility;
-
-namespace GroupProject.Bank.User.Admin
+﻿namespace GroupProject.App.BankManagement.User.Admin
 {
     public class UserAdmin : UserBase
     {

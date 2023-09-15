@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GroupProject.Bank.User.Customer
+namespace GroupProject.App.BankManagement.User
 {
-    public class UserCustomer
+    public enum UserType
     {
+        Admin,
+        Customer
     }
 }

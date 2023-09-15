@@ -1,4 +1,4 @@
-﻿namespace GroupProject.Bank.User
+﻿namespace GroupProject.App.BankManagement.User
 {
     public enum UserStatus
     {

@@ -1,0 +1,188 @@
+﻿====================================
+            Healer Setup
+====================================
+Option Group
+    Healer Setup
+        healerSetup
+Group Type
+    Array
+[x]Collapsible Group
+Number of Entries
+Unlimited
+Entry Name Source
+    Entry Order
+====================================
+          Healer Bar Setup
+====================================
+String
+    Healer Bar Setup
+        healerBarNames
+Width:
+    1
+Default:
+    Paladin » Primary Bar
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+[ElvUI Frame Positions]
+Entry 10
+ElvUF_TargetTarget
+LEFT
+RIGHT
+304
+0
+[Healer Setup]
+Entry 1
+Paladin » Primary Bar
+
+
+--------------------------------------------------------------------
+function aura_env:Init()
+  local ctx = self.region.arcCustomContext
+  if not ctx then
+    ctx = {}
+    self.region.arcCustomContext = ctx
+  end
+  
+  local classBar = self:GetClassBarName()
+  local healerSetup = self:GetHealerConfig()
+  local parentRegion = WeakAuras.GetRegion(classBar)
+  if not parentRegion then
+    print(self.id, "could not find WA:", classBar)
+    return
+  end
+  
+  ctx.parentRegion = parentRegion
+  ctx.minWidth = self.config.minWidth
+  ctx.elvFramePos = self.config.elvFramePos
+  
+  function ctx:OnSetWidth()
+    if ctx.disabled or InCombatLockdown() then
+      return
+    end
+    
+    local anchor = ctx.anchor
+    if not anchor then
+      anchor = CreateFrame("Frame", "ElvUIPositionControllerAnchor", UIParent, "SecureFrameTemplate")
+      ctx.anchor = anchor
+    end
+    
+    local left, bottom, width, height = ctx.parentRegion:GetRect()
+    if width < ctx.minWidth then
+      local xMiddle = left + 0.5 * width
+      width = ctx.minWidth
+      left = xMiddle - 0.5 * width
+    end
+    
+    anchor:ClearAllPoints()
+    anchor:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left, bottom)
+    anchor:SetSize(width, height)
+    
+    local pos = ctx.elvFramePos
+    for i = 1, #pos do
+      local p = pos[i]
+      local frame = _G[p.frameName]
+      if frame then
+        if p.frameName == "ThreatClassic2BarFrame" and healerSetup[classBar] then
+          -- Leaving the ThreatClassic2BarFrame position at the default value and moving on
+        else
+          frame:ClearAllPoints()
+          frame:SetPoint(p.point, anchor, p.relativePoint, p.xOffset, p.yOffset)
+        end
+      end
+    end
+  end
+  
+  if not ctx.hooked then
+    hooksecurefunc(ctx.parentRegion, "SetWidth", function() ctx:OnSetWidth() end)
+    C_Timer.NewTicker(2, function() ctx:OnSetWidth() end)
+    ctx.hooked = true
+  end
+  
+  ctx:OnSetWidth()
+end
+
+function aura_env:GetHealerConfig() 
+  local healerSetup = {}
+  local pos = aura_env.config.healerSetup
+  for i = 1, #pos do
+    local p = pos[i]
+    healerSetup[p.healerBarNames] = true
+  end
+  return healerSetup
+end
+
+function aura_env:GetClassBarName()
+  --local classNames = {"Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Death Knight","Shaman", "Mage", "Warlock", "Monk", "Druid", "Demon Hunter", "Evoker"}
+  
+  local classNames = {
+    ["WARRIOR"] = false, 
+    ["PALADIN"] = true, 
+    ["HUNTER"] = false, 
+    ["ROGUE"] = false, 
+    ["PRIEST"] = false, 
+    ["DEATH KNIGHT"] = false,
+    ["SHAMAN"] = false, 
+    ["MAGE"] = true, 
+    ["WARLOCK"] = true, 
+    ["MONK"] = false, 
+    ["DRUID"] = false, 
+    ["DEMON HUNTER"] = false, 
+    ["EVOKER"] = false
+  }
+  
+  local class = select(2, UnitClass("player"))
+  --[[
+  for i, name in ipairs(classNames) do
+    if class == name:gsub(" ", ""):upper() then
+      return self.config.classBarNamePattern:format(name)
+    end
+  end
+  --]]
+  if classNames[class] then
+    if class == "MAGE" then
+      return self.config.classBarNamePattern:format("Mage")
+    else if class == "WARLOCK" then      
+        return self.config.classBarNamePattern:format("Warlock")
+      else if class == "PALADIN" then      
+          return self.config.classBarNamePattern:format("Paladin")
+        end
+      end
+    end
+  else
+    return self.config.classBarNamePattern:format("General")
+  end
+end
+
+function aura_env:ResetElvFrames()
+  local E = ElvUI and ElvUI[1]
+  local UF = E and E:GetModule("UnitFrames", true)
+  
+  local pos = self.config.elvFramePos
+  for i = 1, #pos do
+    local p = pos[i]
+    local frame = _G[p.frameName]
+    if frame then
+      local mover = _G[p.frameName.."Mover"]
+      if mover then
+        frame:ClearAllPoints()
+        frame:SetPoint("BOTTOM", mover, "BOTTOM")
+      end
+    end
+  end
+end
+
+function aura_env:TSU(allStates, event, ...)
+  local ctx = self.region.arcCustomContext
+  local prevDisabled = ctx.disabled
+  --[[ctx.disabled = (GetSpecializationRole(GetSpecialization()) == "HEALER")]]--
+  
+  if ctx.disabled and not prevDisabled then
+    self:ResetElvFrames()
+  elseif not ctx.disabled and prevDisabled then
+    ctx:OnSetWidth()
+  end
+end
+
+aura_env:Init()
+

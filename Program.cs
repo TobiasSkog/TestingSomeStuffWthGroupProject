@@ -1,17 +1,17 @@
-﻿using GroupProject.App.Tests;
-using GroupProject.Bank;
-using GroupProject.Bank.User;
-using GroupProject.Bank.User.Admin;
-using Microsoft.VisualBasic;
-using ValidationUtility;
+﻿using GroupProject.App;
 
-//https://spectreconsole.net/widgets/grid
-//UserType newUserType = TestingConsole.GetEnumValueFromRange<UserType>();
+App.Run();
 
+/*     Aldor login:
+ * Username: AldorAdmin
+ * Password: 123Aldor
+ * Username: AldorUser
+ * Password: Aldor123
+ */
 
-UserAdmin administrator = new("Tobias", "Skog", "592530215634", new DateTime(1991, 10, 28));
-//_password = socialSecurityNumber + firstName; 592530215634Tobias
-Bank[] bankDatabase = { administrator };
-BankLogin.FindUserName(bankDatabase);
-//TestingConsole.TestDate("Enter Date of Birth: ", 18);
-//TestingConsole.PrintConsole();
+/*    Reidar login:
+ * Username: ReidarAdmin
+ * Password: 123Reidar
+ * Username: ReidarUser
+ * Password: 123Reidar
+*/

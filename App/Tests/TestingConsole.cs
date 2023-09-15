@@ -1,4 +1,4 @@
-﻿using GroupProject.Bank.User;
+﻿using GroupProject.App.BankManagement.User;
 using Spectre.Console;
 using System.Reflection;
 using ValidationUtility;

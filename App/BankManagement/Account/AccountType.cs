@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GroupProject.Bank.Account
+namespace GroupProject.App.BankManagement.Account
 {
-    public enum AccountStatus
+    public enum AccountType
     {
-        Active,
-        Locked
+        Checking,
+        Saving
     }
 }
