@@ -25,17 +25,14 @@ namespace GroupProject.BankDatabase
                     .Select(user => user.ToUserStorage(_admin))
                     .ToList();
 
-                using (StreamWriter file = File.CreateText("Database\\FunkarDettaEller.txt"))
-                {
-                    JsonSerializer gg = new JsonSerializer();
-                    gg.Serialize(file, _users);
-                }
 
 
                 using (StreamWriter sw = File.CreateText(FilePath))
                 {
                     JsonSerializer serializer = new JsonSerializer();
-                    serializer.Serialize(sw, userStorageList);
+
+                    // I Removed userStorageList and swaped it with _users for now
+                    serializer.Serialize(sw, _users);
                 }
 
                 ConsoleIO.StartUp();
@@ -58,12 +55,14 @@ namespace GroupProject.BankDatabase
             string userName = StringValidationHelper.GetString(prompt);
             using (StreamReader sr = new(FilePath))
             {
-                List<UserStorage> userStorageList = JsonConvert.DeserializeObject<List<UserStorage>>(sr.ReadToEnd());
-                UserStorage userStorage = userStorageList.FirstOrDefault(storedUser => storedUser.UserName(_admin) == userName);
-
-                if (userStorage != null)
+                //List<UserStorage> userStorageList = JsonConvert.DeserializeObject<List<UserStorage>>(sr.ReadToEnd());
+                //UserStorage userStorage = userStorageList.FirstOrDefault(storedUser => storedUser.UserName(_admin) == userName);
+                List<UserBase> userList = JsonConvert.DeserializeObject<List<UserBase>>(sr.ReadToEnd());
+                UserBase userStored = userList.FirstOrDefault(storedUser => storedUser.UserName == userName);
+                //if (userStorage != null)
+                if (userStored != null)
                 {
-                    UserBase userBase = _users.FirstOrDefault(user => user.UserId(_admin) == userStorage.UserId(_admin) && user.UserName == userStorage.UserName(_admin));
+                    UserBase userBase = _users.FirstOrDefault(user => user.UserId(_admin) == userStored.UserId(_admin) && user.UserName == userStored.UserName);
 
                     if (userBase != null)
                     {
