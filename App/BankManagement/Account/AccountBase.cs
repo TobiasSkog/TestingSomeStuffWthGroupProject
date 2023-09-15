@@ -1,5 +1,6 @@
 ﻿using GroupProject.App.BankManagement.User;
-using GroupProject.App.LogicHandling;
+using ValidationUtility;
+
 namespace GroupProject.App.BankManagement.Account
 {
     public abstract class AccountBase
@@ -12,13 +13,24 @@ namespace GroupProject.App.BankManagement.Account
 
         public AccountBase(AccountStatus accStatus, AccountType accType, UserBase accOwner, decimal balance = 0m)
         {
-            _accountStatus = AccountStatus.Active;
+            _accountStatus = accStatus;
             _accountType = accType;
             _accountOwner = accOwner;
             if (balance >= 0)
             {
                 _balance = balance;
             }
+            _accountNumber = StringValidationHelper.CreateRandomString(20, "1234567890");
+        }
+
+        public virtual UserBase AccountOwner(UserType userType)
+        {
+            if (userType == UserType.Admin)
+            {
+                return _accountOwner;
+            }
+
+            return null;
         }
     }
 }

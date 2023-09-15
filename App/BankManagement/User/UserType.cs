@@ -9,6 +9,7 @@ namespace GroupProject.App.BankManagement.User
     public enum UserType
     {
         Admin,
-        Customer
+        Customer,
+        Empty
     }
 }

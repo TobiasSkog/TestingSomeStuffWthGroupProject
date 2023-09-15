@@ -1,4 +1,7 @@
-﻿using GroupProject.App.BankManagement.User;
+﻿using GroupProject.App.BankManagement.Account.BankAccounts;
+using GroupProject.App.BankManagement.User;
+using GroupProject.App.BankManagement.User.Admin;
+using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
 using GroupProject.BankDatabase;
 using ValidationUtility;
@@ -10,18 +13,18 @@ namespace GroupProject.App.LogicHandling
         public static UserChoice GetUserChoice(Database DB)
         {
             UserChoice choice = ConsoleIO.WriteWelcomeMenu();
-            UserChoice previousChoice;
+            UserChoice previousChoice = UserChoice.Back;
             UserStatus status;
+            UserBase? user = null;
             UserType type;
             while (true)
             {
-                previousChoice = choice;
                 switch (choice)
                 {
 
                     case UserChoice.Login:
 
-                        UserBase user = DB.FindUserInDatabase();
+                        user = DB.FindUserInDatabase();
                         if (user == null)
                         {
                             Console.WriteLine("User does not exists!");
@@ -29,7 +32,6 @@ namespace GroupProject.App.LogicHandling
                         }
 
                         status = user.Login(user.UserName);
-
 
                         switch (status)
                         {
@@ -58,35 +60,56 @@ namespace GroupProject.App.LogicHandling
                         }
                         break;
                     case UserChoice.CreateAccount:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = CreateAccount();
-                        break;
-                    case UserChoice.CreateSavingsAccount:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = CreateSavingsAccount();
-                        break;
-                    case UserChoice.CreateCheckingsAccount:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = CreateCheckingsAccount();
+                        choice = ConsoleIO.WriteCustomerCreateAccount();
+                        switch (choice)
+                        {
+                            case UserChoice.CreateCheckingsAccount:
+                                if (user != null)
+                                {
+                                    CheckingsAccount checkingsAccount = new(user);
+                                    user.AddAccount(checkingsAccount);
+                                    DB.SaveAccount(checkingsAccount);
+                                    choice = UserChoice.Back;
+                                }
+                                break;
+                            case UserChoice.CreateSavingsAccount:
+                                if (user != null)
+                                {
+                                    SavingsAccount savingsAccount = new(user);
+                                    user.AddAccount(savingsAccount);
+                                    DB.SaveAccount(savingsAccount);
+                                    choice = UserChoice.Back;
+                                }
+                                break;
+                        }
                         break;
                     case UserChoice.CreateUserAccount:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = CreateUserAccount();
+                        if (user.GetUserType() == UserType.Customer)
+                        {
+                            choice = UserChoice.CreateCustomerAccount;
+                            break;
+                        }
+                        choice = ConsoleIO.WriteCreateUserAccount();
+                        break;
+                    // IM HERE
+                    case UserChoice.CreateCustomerAccount:
+                        if (user != null)
+                        {
+                            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserType.Customer);
+                            DB.SaveUser(userCustomer);
+                            choice = UserChoice.Back;
+                        }
                         break;
                     case UserChoice.CreateAdminAccount:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = CreateAdminAccount();
+                        if (user != null)
+                        {
+                            UserAdmin userAdmin = AccountManager.CreateUserAdminAccount(UserType.Admin);
+                            DB.SaveUser(userAdmin);
+                            choice = UserChoice.Back;
+                        }
                         break;
-                    case UserChoice.CreateCustomerAccount:
-                        Console.WriteLine("Not implemented yet :)");
-                        choice = UserChoice.Exit;
-                        //choice = CreateCustomerAccount();
-                        break;
+
+                    // I'M HERE!!!!
                     case UserChoice.ListAllAccounts:
                         Console.WriteLine("Not implemented yet :)");
                         choice = UserChoice.Exit;

@@ -6,8 +6,8 @@ namespace GroupProject.App.ConsoleHandling
     {
         Login,
         CreateAccount,
-        CreateSavingsAccount,
         CreateCheckingsAccount,
+        CreateSavingsAccount,
         CreateUserAccount,
         CreateAdminAccount,
         CreateCustomerAccount,

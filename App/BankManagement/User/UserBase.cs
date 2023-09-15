@@ -1,4 +1,5 @@
 ﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.Tests;
 using GroupProject.BankDatabase;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +21,7 @@ namespace GroupProject.App.BankManagement.User
         protected virtual UserType _userType { get; set; }
         protected virtual UserStatus _userStatus { get; set; }
         protected virtual sbyte _remainingAttempts { get; set; }
-        protected virtual AccountBase[] _accounts { get; set; }
+        protected virtual List<AccountBase> _accounts { get; set; }
 
         public UserBase(string firstName, string lastName, string socialSecurityNumber, DateTime dateOfBirth, UserType userType)
         {
@@ -35,19 +36,43 @@ namespace GroupProject.App.BankManagement.User
                 _userType = userType;
                 _userStatus = UserStatus.Exists;
                 _remainingAttempts = 3;
-                _userId = CharValidationHelper.CreateRandomUserId();
+                _userId = StringValidationHelper.CreateRandomString();
 
             }
         }
-        public UserStorage ToUserStorage()
-        {
-            return new UserStorage(_userName, _userId);
-        }
         public virtual string FirstName => _firstName;
         public virtual string UserName => _userName;
-        public virtual string UserId => _userId;
         public virtual sbyte RemainingAttempts => _remainingAttempts;
         public virtual UserType GetUserType() => _userType;
+        public virtual string UserId(UserType userType)
+        {
+            if (userType == UserType.Admin)
+            {
+                return _userId;
+            }
+
+            return null;
+        }
+        public virtual string SocialSecurityNumber(UserType userType)
+        {
+            if (userType == UserType.Admin)
+            {
+                return _socialSecurityNumber;
+            }
+            return null;
+        }
+
+
+        public UserStorage ToUserStorage(UserType userType)
+        {
+            if (userType == UserType.Admin)
+            {
+                return new UserStorage(_userName, _userId, _accounts);
+            }
+
+            return null;
+        }
+        public virtual void AddAccount(AccountBase account) => _accounts.Add(account);
         public virtual UserStatus ExistingAccount(string userName)
         {
             if (userName == _userName)
@@ -74,13 +99,6 @@ namespace GroupProject.App.BankManagement.User
             }
             return UserStatus.FailedLogin;
         }
-        public virtual string SocialSecurityNumber(UserType userType)
-        {
-            if (userType == UserType.Admin)
-            {
-                return _socialSecurityNumber;
-            }
-            return default;
-        }
+
     }
 }

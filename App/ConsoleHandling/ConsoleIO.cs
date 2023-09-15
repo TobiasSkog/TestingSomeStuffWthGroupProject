@@ -1,4 +1,5 @@
-﻿using GroupProject.App.BankManagement.User;
+﻿using GroupProject.App.BankManagement.Account.BankAccounts;
+using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.BankDatabase;
@@ -55,7 +56,27 @@ namespace GroupProject.App.ConsoleHandling
             UserChoice enumChoice = EnumValidationHelper.GetSpecificEnumValue<UserChoice>(userChoice.Trim());
             return enumChoice;
         }
+        public static UserChoice WriteCreateUserAccount()
+        {
+            AnsiConsole.Clear();
 
+            var choice = AnsiConsole.Prompt(
+                        new SelectionPrompt<string>()
+                            .Title("[mediumpurple2]What would you like to do?[/]")
+                            .PageSize(9)
+                            .HighlightStyle("gold3_1")
+                            .AddChoices(new[]
+                            {
+                    "[lightsteelblue]Create Customer Account[/]",
+                    "[lightsteelblue]Create Admin Account[/]",
+
+                    "[deeppink4_2]Back[/]"
+                            }));
+
+            string userChoice = StringValidationHelper.GetCleanSpectreConsoleString(choice);
+            UserChoice enumChoice = EnumValidationHelper.GetSpecificEnumValue<UserChoice>(userChoice.Trim());
+            return enumChoice;
+        }
         public static UserChoice WriteCustomerMenu()
         {
             AnsiConsole.Clear();
@@ -67,13 +88,12 @@ namespace GroupProject.App.ConsoleHandling
                             .HighlightStyle("gold3_1")
                             .AddChoices(new[]
                             {
-                    "[lightsteelblue]MakeDeposit[/]",
-                    "[lightsteelblue]MakeWithdrawal[/]",
-                    "[lightsteelblue]ListAllAccounts[/]",
-                    "[lightsteelblue]ShowLog[/]",
-                    "[lightsteelblue]CreateAccount[/]",
-                    "[lightsteelblue]LoanMoney[/]",
-                    "[lightsteelblue]Back[/]",
+                    "[lightsteelblue]Make Deposit[/]",
+                    "[lightsteelblue]Make Withdrawal[/]",
+                    "[lightsteelblue]List All Accounts[/]",
+                    "[lightsteelblue]Show Log[/]",
+                    "[lightsteelblue]Create Account[/]",
+                    "[lightsteelblue]Loan Money[/]",
 
                     "[deeppink4_2]Logout[/]"
                             }));
@@ -105,6 +125,20 @@ namespace GroupProject.App.ConsoleHandling
             string userChoice = StringValidationHelper.GetCleanSpectreConsoleString(choice);
             UserChoice enumChoice = EnumValidationHelper.GetSpecificEnumValue<UserChoice>(userChoice.Trim());
             return enumChoice;
+        }
+        internal static UserChoice WriteCustomerCreateSavingsAccount()
+        {
+            AnsiConsole.Clear();
+
+
+            return UserChoice.Back;
+        }
+        public static UserChoice WriteCustomerCreateCheckingsAccount()
+        {
+            AnsiConsole.Clear();
+
+
+            return UserChoice.Back;
         }
         public static UserChoice WriteAdminMenu()
         {

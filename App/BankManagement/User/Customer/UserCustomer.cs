@@ -4,15 +4,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.User.Customer
 {
     public class UserCustomer : UserBase, ITransaction
     {
-        public UserCustomer(string firstName, string lastName, string socialSecurityNumber, DateTime dateOfBirth) : base(firstName, lastName, socialSecurityNumber, dateOfBirth, UserType.Customer)
+        public UserCustomer(string firstName, string lastName, string socialSecurityNumber, DateTime dateOfBirth, UserType userType) : base(firstName, lastName, socialSecurityNumber, dateOfBirth, userType)
         {
 
         }
+
 
         public void CheckBalance(string accNumber)
         {
