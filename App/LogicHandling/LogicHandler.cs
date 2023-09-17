@@ -57,18 +57,6 @@ namespace GroupProject.App.LogicHandling
             _choice = GetUserStatus(_status);
             break;
 
-
-          case UserChoice.CreateAccount:
-            if (_userType != UserType.Admin)
-            {
-              _previousChoice = _choice;
-              _choice = ConsoleIO.CustomerCreateUserAccount();
-              break;
-            }
-            _previousChoice = _choice;
-            _choice = ConsoleIO.AdminCreateUserAccount();
-            break;
-
           case UserChoice.CreateCheckingsAccount:
             if (_user != null)
             {
@@ -104,16 +92,10 @@ namespace GroupProject.App.LogicHandling
             break;
 
           case UserChoice.CreateCustomerAccount:
-            if (_user != null)
-            {
-              UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserType.Customer);
-              _DB.AddNewUserToDatabase(userCustomer);
-              _previousChoice = _choice;
-              _choice = UserChoice.Back;
-              break;
-            }
+            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserType.Customer);
+            _DB.AddNewUserToDatabase(userCustomer);
             _previousChoice = _choice;
-            _choice = ConsoleIO.WelcomeMenu();
+            _choice = UserChoice.Back;
             break;
 
           case UserChoice.CreateAdminAccount:

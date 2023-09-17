@@ -1,14 +1,17 @@
 ﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.User.Admin;
+using GroupProject.App.BankManagement.User.Customer;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
+using System.Runtime.Serialization;
 using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.User
 {
   [Serializable]
   [JsonConverter(typeof(UserBaseConverter))]
-  public abstract class UserBase : Bank
+  public abstract class UserBase
   {
     [JsonProperty("FirstName")]
     public virtual string FirstName { get; private set; }
@@ -51,10 +54,10 @@ namespace GroupProject.App.BankManagement.User
     {
       Accounts = new List<AccountBase>();
       UserLog = new List<string>();
-      string data = $"{Username}.txt";
+      string data = $"Users.json";
       string folder = "CustomFiles\\Database";
       string path = Path.Combine(folder, data);
-      PrintPropertiesToFile(path);
+      LoadDataFromFile(path);
     }
     public UserBase(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserType userType)
     {
@@ -77,6 +80,44 @@ namespace GroupProject.App.BankManagement.User
         string folder = "CustomFiles\\Database";
         string path = Path.Combine(folder, data);
         PrintPropertiesToFile(path);
+      }
+    }
+    private void LoadDataFromFile(string filePath)
+    {
+      try
+      {
+        var settings = new JsonSerializerSettings
+        {
+          Converters = { new UserBaseConverter() },
+          ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+          NullValueHandling = NullValueHandling.Include
+        };
+
+        using (StreamReader sr = new StreamReader(filePath))
+        {
+          var jsonUser = sr.ReadToEnd();
+          var tempUser = JsonConvert.DeserializeObject<UserBase>(jsonUser, settings);
+
+          // Now, set the properties of the current instance with the values from deserialized user
+          FirstName = tempUser.FirstName;
+          LastName = tempUser.LastName;
+          Username = tempUser.Username;
+          Salt = tempUser.Salt;
+          HashedPassword = tempUser.HashedPassword;
+          RemainingAttempts = tempUser.RemainingAttempts;
+          UserId = tempUser.UserId;
+          SocialSecurityNumber = tempUser.SocialSecurityNumber;
+          DateOfBirth = tempUser.DateOfBirth;
+          UserAccountType = tempUser.UserAccountType;
+          UserAccountStatus = tempUser.UserAccountStatus;
+          Accounts = tempUser.Accounts; // Copy accounts from deserialized user
+          UserLog = tempUser.UserLog; // Copy user log from deserialized user
+        }
+      }
+      catch (Exception ex)
+      {
+        ExceptionHelper.ExceptionDetails(ex);
+        // Handle any exceptions here
       }
     }
     public void PrintPropertiesToFile(string filePath)

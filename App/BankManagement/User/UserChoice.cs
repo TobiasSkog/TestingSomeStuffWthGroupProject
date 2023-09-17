@@ -4,7 +4,6 @@
   {
     NoChoiceReceived,
     Login,
-    CreateAccount,
     CreateCheckingsAccount,
     CreateSavingsAccount,
     CreateUserAccount,
