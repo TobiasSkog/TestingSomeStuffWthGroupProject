@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace GroupProject.App.BankManagement.User
+﻿namespace GroupProject.App.BankManagement.User
 {
-    public enum UserType
-    {
-        Admin,
-        Customer,
-        Empty
-    }
+  public enum UserType
+  {
+    Admin,
+    Customer,
+    NoUser
+  }
 }

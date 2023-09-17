@@ -7,11 +7,15 @@ using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.User.Customer
 {
-    public class UserCustomer : UserBase
+  public class UserCustomer : UserBase
+  {
+    public UserCustomer() : base()
     {
-        public UserCustomer(string firstName, string lastName, string socialSecurityNumber, DateTime dateOfBirth, UserType userType) : base(firstName, lastName, socialSecurityNumber, dateOfBirth, userType)
-        {
 
-        }
     }
+    public UserCustomer(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserType userType) : base(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType)
+    {
+
+    }
+  }
 }

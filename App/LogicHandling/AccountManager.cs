@@ -3,6 +3,7 @@ using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
+using GroupProject.BankDatabase;
 using ValidationUtility;
 
 namespace GroupProject.App.LogicHandling
@@ -13,11 +14,21 @@ namespace GroupProject.App.LogicHandling
         {
             if (userType == UserType.Customer)
             {
+
+                bool uniqueUsername = false;
                 string firstName = StringValidationHelper.GetString("Enter your first name: ");
                 string lastName = StringValidationHelper.GetString("Enter your last name: ");
+                string username = StringValidationHelper.GetString("Enter a username: ");
+                //while (true)
+                //{
+                //    Console.WriteLine("Username taken! Choose another username.");
+
+                //}
+
+                string password = StringValidationHelper.GetString("Enter a password: ");
                 string socialSecurityNumber = StringValidationHelper.GetString("Enter your social security number: ");
-                DateTime dateOfBirth = DateTimeValidationHelper.GetExactDateTimeAgeRestriction("Enter your date of birth ", "YYYY/MM/DD", 18);
-                return new UserCustomer(firstName, lastName, socialSecurityNumber, dateOfBirth, userType);
+                DateTime dateOfBirth = DateTimeValidationHelper.GetExactDateTimeAgeRestriction("Enter your date of birth ", "yyyy/MM/dd", 18);
+                return new UserCustomer(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType);
             }
             return default;
         }
@@ -26,11 +37,20 @@ namespace GroupProject.App.LogicHandling
         {
             if (userType == UserType.Admin)
             {
+                bool uniqueUsername = false;
                 string firstName = StringValidationHelper.GetString("Enter your first name: ");
                 string lastName = StringValidationHelper.GetString("Enter your last name: ");
+                string username = "";
+                //while (Database.ExistingUsername(username = StringValidationHelper.GetString("Enter a username: ")))
+                //{
+                //    Console.WriteLine("Username taken! Choose another username.");
+
+                //}
+
+                string password = StringValidationHelper.GetString("Enter a password: ");
                 string socialSecurityNumber = StringValidationHelper.GetString("Enter your social security number: ");
-                DateTime dateOfBirth = DateTimeValidationHelper.GetExactDateTimeAgeRestriction("Enter your date of birth ", "YYYY/MM/DD", 18);
-                return new UserAdmin(firstName, lastName, socialSecurityNumber, dateOfBirth, userType);
+                DateTime dateOfBirth = DateTimeValidationHelper.GetExactDateTimeAgeRestriction("Enter your date of birth ", "yyyy/MM/dd", 18);
+                return new UserAdmin(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType);
             }
             return default;
         }

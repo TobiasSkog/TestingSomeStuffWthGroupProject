@@ -37,7 +37,7 @@ namespace GroupProject.App.LogicHandling
         private void ProcessTransaction(Transaction transaction)
         {
             //transaction.User
-            transaction.User.Accounts(UserType.Admin);
+            //transaction.User.Accounts;
 
 
         }

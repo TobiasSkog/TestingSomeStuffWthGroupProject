@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GroupProject.BankDatabase
+namespace GroupProject.App.ConsoleHandling
 {
     internal class BankLoggo
     {
