@@ -1,4 +1,5 @@
 ﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
@@ -18,6 +19,7 @@ namespace GroupProject.BankDatabase
     private static readonly string _PATHACC = "CustomFiles\\Database\\Accounts.json";
 
     private List<UserBase> _users { get; set; }
+    private List<AccountBase> _accounts { get; set; }
 
     public Database(string data = "Users.json", string folder = "CustomFiles\\Database")
     {
@@ -25,6 +27,8 @@ namespace GroupProject.BankDatabase
       _DATA = data;
       _FOLDER = folder;
       _PATH = Path.Combine(_FOLDER, _DATA);
+      bool foundDatabase = File.Exists(_PATH);
+      bool foundAccounts = File.Exists(_PATHACC);
       if (!Directory.Exists(_FOLDER))
       {
         try
@@ -36,30 +40,33 @@ namespace GroupProject.BankDatabase
           ExceptionHelper.ExceptionDetails(ex);
         }
       }
-      if (!File.Exists(_PATH))
+      if (!foundDatabase)
       {
         try
         {
           _users = InitializeDatabaseWithDefaultData();
-          // File.Create(_PATH).Close();
-          SaveData();
+
         }
         catch (Exception ex)
         {
           ExceptionHelper.ExceptionDetails(ex);
         }
       }
-      if (!File.Exists(_PATHACC))
+      if (!foundAccounts)
       {
         try
         {
-          File.Create(_PATHACC).Close();
+          _accounts = InitializeDatabaseWithDefaultAccounts();
         }
         catch (Exception ex)
         {
           ExceptionHelper.ExceptionDetails(ex);
           Console.ReadKey();
         }
+      }
+      if (!foundDatabase || !foundAccounts)
+      {
+        SaveData(!foundDatabase, !foundAccounts);
       }
       else
       {
@@ -75,40 +82,15 @@ namespace GroupProject.BankDatabase
     }
     public UserBase? AttemptUserLogin(string username, string password)
     {
-      UserBase user;
-      UserStatuses userStatus;
-      do
-      {
-        user = GetUser(username);
-        userStatus = user.Login(username, password);
-
-        if (userStatus == UserStatuses.Locked)
-        {
-          ConsoleIO.WelcomeMenu();
-        }
-
-        if (userStatus != UserStatuses.Success)
-        {
-          if (user.Username == username)
-          {
-            Console.WriteLine($"\nIncorrect password! {user.RemainingAttempts} attempts remaining.");
-            password = PasswordValidationHelper.PasswordValidation("\nEnter password: ");
-            user = AttemptUserLogin(username, password);
-          }
-          else
-          {
-            Console.WriteLine($"\nIncorrect username!");
-          }
-        }
-      } while (userStatus != UserStatuses.Success || userStatus == UserStatuses.Locked);
-
-
-      return user;
+      return GetUser(username);
     }
 
     public void AddNewAccountToUser(UserBase user, AccountBase account)
     {
       user.AddAccount(account);
+      _users.Remove(user);
+      _users.Add(user);
+      _accounts.Add(account);
       SaveData();
     }
 
@@ -117,14 +99,18 @@ namespace GroupProject.BankDatabase
       _users.Add(user);
       SaveData();
     }
-
-    private UserBase GetUser(string username)
+    private UserBase? GetUser(string username)
     {
       try
       {
-        var user = _users.Find(user => user.Username == username);
-        return user;
+        if (UserNameExists(username))
+        {
+          UserBase? user = _users.Find(user => user.Username == username);
+          return user;
+        }
+        return null;
       }
+
       catch (Exception ex)
       {
         ExceptionHelper.ExceptionDetails(ex);
@@ -136,13 +122,17 @@ namespace GroupProject.BankDatabase
     {
       try
       {
-        bool exists = _users.Any(user => user.Username == username);
-        return exists;
+        if (username != null)
+        {
+          bool exists = _users.Any(user => user.Username == username);
+          return exists;
+        }
+        return false;
       }
       catch (Exception ex)
       {
         ExceptionHelper.ExceptionDetails(ex);
-        return true;
+        return false;
       }
 
     }
@@ -153,33 +143,25 @@ namespace GroupProject.BankDatabase
         using (StreamReader sr = new StreamReader(_PATH))
         {
           var jsonUsers = sr.ReadToEnd();
-          List<UserBase> users = JsonConvert.DeserializeObject<List<UserBase>>(jsonUsers, new JsonSerializerSettings
+          List<UserBase>? users = JsonConvert.DeserializeObject<List<UserBase>>(jsonUsers, new JsonSerializerSettings
           {
             TypeNameHandling = TypeNameHandling.None,
             Converters = { new CustomUserConverter() }
           });
 
-          //List<UserBase> correctedList = new();
-          //foreach (UserBase user in users)
-          //{
-          //  if (user.UserType == UserTypes.Customer)
-          //  {
-          //    correctedList.Add(new UserCustomer(
-          //      user.FirstName,
-          //      user.LastName,
-          //      user.Username,
-          //      user.Salt,
-          //      user.HashedPassword,
-          //      user.RemainingAttempts,
-          //      user.
-          //      ));
-          //  }
-          //  else if (user.UserType == UserTypes.Admin)
-          //  {
-
-          //  }
-          //}
           _users = users;
+        }
+
+        using (StreamReader sr = new StreamReader(_PATHACC))
+        {
+          var jsonAccounts = sr.ReadToEnd();
+          List<AccountBase>? accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
+          {
+            TypeNameHandling = TypeNameHandling.None,
+            Converters = { new CustomAccountConverter() }
+          });
+
+          _accounts = accounts;
         }
       }
       catch (Exception ex)
@@ -198,7 +180,7 @@ namespace GroupProject.BankDatabase
         using (StreamReader sr = new StreamReader(_PATHACC))
         {
           var jsonAccounts = sr.ReadToEnd();
-          List<AccountBase> accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
+          List<AccountBase>? accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
           {
             TypeNameHandling = TypeNameHandling.Objects,
             Converters = { new CustomAccountConverter() }
@@ -224,14 +206,25 @@ namespace GroupProject.BankDatabase
         return null;
       }
     }
-    public void SaveData()
+    public void SaveData(bool saveDatabase = true, bool saveAccounts = true)
     {
       try
       {
-        using (StreamWriter file = File.CreateText(_PATH))
+        if (saveDatabase)
         {
-          JsonSerializer serializer = new JsonSerializer();
-          serializer.Serialize(file, _users);
+          using (StreamWriter sw = File.CreateText(_PATH))
+          {
+            JsonSerializer serializer = new JsonSerializer();
+            serializer.Serialize(sw, _users);
+          }
+        }
+        if (saveAccounts)
+        {
+          using (StreamWriter sw = File.CreateText(_PATHACC))
+          {
+            JsonSerializer serializer = new JsonSerializer();
+            serializer.Serialize(sw, _accounts);
+          }
         }
       }
       catch (Exception ex)
@@ -257,6 +250,16 @@ namespace GroupProject.BankDatabase
       };
 
       return createdUserList;
+    }
+
+    private static List<AccountBase> InitializeDatabaseWithDefaultAccounts()
+    {
+      List<AccountBase> createdAccountList = new List<AccountBase>()
+      {
+        new CheckingsAccount(AccountStatuses.Active, AccountTypes.Checking, 1000000000M, CurrencyTypes.SEK)
+      };
+
+      return createdAccountList;
     }
 
   }

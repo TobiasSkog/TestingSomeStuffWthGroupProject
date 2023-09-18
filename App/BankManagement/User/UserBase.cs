@@ -1,4 +1,5 @@
 ﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.ConsoleHandling;
 using Newtonsoft.Json;
 using ValidationUtility;
 
@@ -62,31 +63,6 @@ namespace GroupProject.App.BankManagement.User
       }
     }
 
-    //[JsonConstructor]
-    //public UserBase(string firstName, string lastName, string username, string salt, string hashedPassword, sbyte remainingAttempts, string userId, string socialSecurityNumber, DateTime dateOfBirth, UserTypes userAccountType, UserStatuses userStatus, List<String> accountIds = null)
-    //{
-    //  FirstName = firstName;
-    //  LastName = lastName;
-    //  Username = username;
-    //  Salt = salt;
-    //  HashedPassword = hashedPassword;
-    //  RemainingAttempts = remainingAttempts;
-    //  UserId = userId;
-    //  SocialSecurityNumber = socialSecurityNumber;
-    //  DateOfBirth = dateOfBirth;
-    //  UserType = userAccountType;
-    //  UserStatus = userStatus;
-    //  if (accountIds == null)
-    //  {
-    //    AccountIds = new List<string>();
-    //  }
-    //  else
-    //  {
-    //    AccountIds = accountIds;
-    //  }
-    //  UserLog = new List<string>();
-    //}
-
     public virtual void AddToLog(string log)
     {
       if (UserLog == null)
@@ -123,13 +99,31 @@ namespace GroupProject.App.BankManagement.User
       }
       return UserStatuses.FailedLogin;
     }
+    public virtual UserChoice ShowLog()
+    {
+      Console.WriteLine("This is the log");
+      return UserChoice.CustomerMenu;
+    }
+    public virtual UserChoice LoanMoney()
+    {
+      Console.WriteLine("This is a loan");
+      return UserChoice.CustomerMenu;
+    }
+    public virtual UserChoice MakeWithdrawal()
+    {
+      Console.WriteLine("This is a withdrawal");
+      return UserChoice.CustomerMenu;
+    }
+    public virtual UserChoice MakeDeposit()
+    {
+      Console.WriteLine("This is a deposit");
+      return UserChoice.CustomerMenu;
+    }
     public virtual bool CheckIfUserHaveAnyAccounts()
     {
       if (AccountIds.Count == 0 || AccountIds == null)
       {
-        bool CreateNewAccount = BoolValidationHelper.PromptForYesOrNo("You have no accounts yet!" +
-          "\nWould you like to create one (Y/N): ");
-        return CreateNewAccount;
+        return false;
       }
       return true;
     }

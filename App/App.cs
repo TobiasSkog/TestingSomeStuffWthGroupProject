@@ -3,9 +3,11 @@ using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
+using GroupProject.App.ConsoleHandling;
 using GroupProject.App.EventLogs;
 using GroupProject.App.LogicHandling;
 using GroupProject.BankDatabase;
+using Spectre.Console;
 
 namespace GroupProject.App
 {
@@ -14,8 +16,7 @@ namespace GroupProject.App
     // TRANSACTIONSCHEDULER CHANGE TIMESPAN.FROMSECONDS TO MINUTES!!!!!!!!
     public static void Run()
     {
-
-
+      AnsiConsole.Background = Color.Black;
 
       /*    Aldor login:
        * Username: aldorAdmin
@@ -34,8 +35,6 @@ namespace GroupProject.App
       Database DB = new();
       Logger log = new();
       LogicHandler LH = new(DB, log);
-
-
 
       UserChoice userChoice;
       do

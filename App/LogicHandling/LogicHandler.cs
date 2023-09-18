@@ -1,12 +1,10 @@
-﻿using GroupProject.App.BankManagement.Account;
-using GroupProject.App.BankManagement.Account.BankAccounts;
+﻿using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
 using GroupProject.App.EventLogs;
 using GroupProject.BankDatabase;
-using ValidationUtility;
 
 namespace GroupProject.App.LogicHandling
 {
@@ -30,149 +28,178 @@ namespace GroupProject.App.LogicHandling
     }
     public UserChoice GetUserChoice()
     {
-      _choice = ConsoleIO.WelcomeMenu();
+      _choice = UserChoice.WelcomeScreen;
 
       while (true)
       {
 
         switch (_choice)
         {
+          case UserChoice.WelcomeScreen:
+            _choice = ConsoleIO.WelcomeMenu();
+            break;
+
           case UserChoice.Login:
+            _previousChoice = UserChoice.WelcomeScreen;
+            string username = ConsoleIO.Username("Enter username");
+            string password = ConsoleIO.Password("Enter password");
 
-            string username = StringValidationHelper.GetString("Enter username: ");
-            string password = PasswordValidationHelper.PasswordValidation("Enter password: ", 2, 113, false, false, false);
-
-            //if (_DB.UserNameExists(username))
-            //{
-            _user = _DB.AttemptUserLogin(username, password);
-
-            //}
-            //else
-            //{
-            //  _choice = UserChoice.Login;
-            //  break;
-            //}
-            // ATTEMPT TO LOGIN
-            // ACCOUNT NEED TO EXIST TO CONTINUE
-            if (_user != null)
+            if (_DB.UserNameExists(username))
             {
-              _userType = _user.UserType;
-              _status = _user.Login(username, password);
-              _previousChoice = _choice;
-              _choice = GetUserStatus(_status);
+              _user = _DB.AttemptUserLogin(username, password);
+
+              if (_user != null)
+              {
+                _userType = _user.UserType;
+                _status = _user.Login(username, password);
+                if (_user.RemainingAttempts >= 0)
+                {
+                  _choice = GetUserStatus(_status);
+                }
+              }
+
               break;
             }
+
             _status = UserStatuses.FailedLogin;
-            _previousChoice = _choice;
             _choice = GetUserStatus(_status);
             break;
 
+          case UserChoice.CustomerMenu:
+            _choice = ConsoleIO.CustomerMenu();
+            break;
+
+          case UserChoice.AdminMenu:
+            _choice = ConsoleIO.AdminMenu();
+            break;
+
+          case UserChoice.CreateBankAccount:
+            _previousChoice = UserChoice.CustomerMenu;
+
+            _choice = ConsoleIO.CustomerCreateAccount();
+            break;
+
           case UserChoice.CreateCheckingsAccount:
+            _previousChoice = UserChoice.CustomerMenu;
+
             if (_user != null)
             {
-              CheckingsAccount checkingsAccount = new(AccountStatuses.Active, AccountTypes.Checking);
-              _DB.AddNewAccountToUser(_user, checkingsAccount);
+              CheckingsAccount newChecking = AccountManager.CreateCheckingsAccount(_user.UserType);
+              _DB.AddNewAccountToUser(_user, newChecking);
+              _choice = ConsoleIO.CustomerMenu();
+              break;
             }
-            _previousChoice = _choice;
-            _choice = UserChoice.Back;
+            _choice = ConsoleIO.CustomerMenu();
             break;
 
           case UserChoice.CreateSavingsAccount:
+            _previousChoice = UserChoice.CustomerMenu;
+
             if (_user != null)
             {
-              SavingsAccount savingsAccount = new(AccountStatuses.Active, AccountTypes.Saving);
-              _DB.AddNewAccountToUser(_user, savingsAccount);
-              _previousChoice = _choice;
-              _choice = UserChoice.Back;
+              SavingsAccount newSaving = AccountManager.CreateSavingsAccount(_user.UserType);
+              _user.AddAccount(newSaving);
+              _choice = ConsoleIO.CustomerMenu();
+              break;
             }
-            _previousChoice = _choice;
             _choice = UserChoice.Back;
             break;
 
 
           case UserChoice.CreateUserAccount:
+            _previousChoice = UserChoice.WelcomeScreen;
+
             if (_userType != UserTypes.Admin)
             {
-              _previousChoice = _choice;
               _choice = ConsoleIO.CustomerCreateUserAccount();
               break;
             }
-            _previousChoice = _choice;
             _choice = ConsoleIO.AdminCreateUserAccount();
             break;
 
           case UserChoice.CreateCustomerAccount:
-            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserTypes.Customer);
+            _previousChoice = UserChoice.CustomerMenu;
+
+            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserTypes.Customer, _DB);
             _DB.AddNewUserToDatabase(userCustomer);
-            _previousChoice = _choice;
             _choice = UserChoice.Back;
             break;
 
           case UserChoice.CreateAdminAccount:
+            _previousChoice = UserChoice.AdminMenu;
             if (_user != null && _userType == UserTypes.Admin)
             {
-              UserAdmin userAdmin = AccountManager.CreateUserAdminAccount(UserTypes.Admin);
+              UserAdmin userAdmin = AccountManager.CreateUserAdminAccount(UserTypes.Admin, _DB);
               _DB.AddNewUserToDatabase(userAdmin);
-              _previousChoice = _choice;
               _choice = UserChoice.Back;
             }
             break;
 
           case UserChoice.ListAllAccounts:
+            _previousChoice = UserChoice.CustomerMenu;
+
             if (_userType == UserTypes.Customer)
             {
-              bool createAccount = _user.CheckIfUserHaveAnyAccounts();
-              if (!createAccount)
-              {
-                _previousChoice = _choice;
-                _choice = ConsoleIO.CustomerAccountList(_user.AccountIds, _user);
+              bool haveAccounts = _user.CheckIfUserHaveAnyAccounts();
 
+              if (haveAccounts)
+              {
+                _choice = ConsoleIO.CustomerAccountList(_user.AccountIds, _user);
+                break;
               }
-              _previousChoice = _choice;
-              _choice = ConsoleIO.CustomerCreateAccount();
-              break;
+
+              bool createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
+
+              if (createNewAccount)
+              {
+                _choice = ConsoleIO.CustomerCreateAccount();
+                break;
+              }
             }
-            _previousChoice = _choice;
-            _choice = UserChoice.Back;
+
+            _choice = _previousChoice;
             break;
+
 
           // I'M HERE!!!!
           case UserChoice.UpdateCurrencyExchange:
+            _previousChoice = UserChoice.AdminMenu;
+
             if (_userType == UserTypes.Admin)
             {
-              _previousChoice = _choice;
               _choice = ConsoleIO.AdminCurrencyExchangeMenu();
+              break;
             }
-            _previousChoice = _choice;
+
             _choice = UserChoice.Back;
             break;
 
           case UserChoice.MakeDeposit:
+            _previousChoice = UserChoice.CustomerMenu;
             Console.WriteLine("Not implemented yet :)");
-            _previousChoice = _choice;
-            _choice = UserChoice.Exit;
-            //choice = MakeDeposit();
+
+            _choice = _user.MakeDeposit();
             break;
 
           case UserChoice.MakeWithdrawal:
+            _previousChoice = UserChoice.CustomerMenu;
             Console.WriteLine("Not implemented yet :)");
-            _previousChoice = _choice;
-            _choice = UserChoice.Exit;
-            //choice = MakeWithdrawal();
+
+            _choice = _user.MakeWithdrawal();
             break;
 
           case UserChoice.LoanMoney:
+            _previousChoice = UserChoice.CustomerMenu;
             Console.WriteLine("Not implemented yet :)");
-            _previousChoice = _choice;
-            _choice = UserChoice.Exit;
-            //choice = LoanMoney();
+
+            _choice = _user.LoanMoney();
             break;
 
           case UserChoice.ShowLog:
+            _previousChoice = UserChoice.CustomerMenu;
             Console.WriteLine("Not implemented yet :)");
-            _previousChoice = _choice;
-            _choice = UserChoice.Exit;
-            //choice = ShowLog();
+
+            _choice = _user.ShowLog();
             break;
 
           case UserChoice.Back:
@@ -180,12 +207,14 @@ namespace GroupProject.App.LogicHandling
             break;
 
           case UserChoice.Logout:
-            _previousChoice = UserChoice.NoChoiceReceived;
+            _previousChoice = UserChoice.WelcomeScreen;
+            Console.WriteLine("Not implemented yet :)");
+
             _choice = ConsoleIO.WelcomeMenu();
             break;
 
           case UserChoice.Exit:
-            _previousChoice = UserChoice.NoChoiceReceived;
+            _previousChoice = UserChoice.WelcomeScreen;
             return UserChoice.Exit;
 
           default:
@@ -216,25 +245,21 @@ namespace GroupProject.App.LogicHandling
         case UserStatuses.FailedLogin:
           if (_user != null)
           {
-            Console.WriteLine($"\nFailed to login! {_user.RemainingAttempts} attempts remaining.");
             _log.LogFailedEvent("USERLOGIN", $"{_user.Username} attempted login, {_user.RemainingAttempts} attempts remaining.");
             _user.AddToLog($"User failed to login in at {DateTime.Now}, {_user.RemainingAttempts} attempts remaining.");
-          }
-          else
-          {
-            Console.WriteLine($"\nFailed to login, username not found.");
-            _log.LogFailedEvent("USERLOGIN", $"UNKOWN-USER attempted login");
+            return ConsoleIO.WrongLogin($"\nFailed to login! {_user.RemainingAttempts} attempts remaining.");
           }
 
-          return UserChoice.Login;
+          _log.LogFailedEvent("USERLOGIN", $"UNKOWN-USER attempted login");
+          return _choice = ConsoleIO.WrongLogin($"Failed to login, username not found.");
 
         case UserStatuses.Locked:
           _log.LogWarning($"User failed to login in at {DateTime.Now} and are now locked for 15 minutes");
           ConsoleIO.WriteLockedMenu();
-          return ConsoleIO.WelcomeMenu();
+          return UserChoice.WelcomeScreen;
 
         default:
-          return ConsoleIO.WelcomeMenu();
+          return UserChoice.WelcomeScreen;
       }
     }
   }

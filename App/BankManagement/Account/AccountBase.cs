@@ -1,15 +1,12 @@
 ﻿using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
 using GroupProject.App.BankManagement.Interfaces;
 using GroupProject.App.BankManagement.User;
-using GroupProject.App.BankManagement.User.Customer;
-using GroupProject.BankDatabase.JsonConverters;
 using Newtonsoft.Json;
 using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.Account
 {
   [JsonObject(MemberSerialization.OptIn)]
-  [JsonConverter(typeof(CustomAccountConverter))]
   public abstract class AccountBase : ITransaction
   {
     [JsonProperty]
@@ -25,6 +22,10 @@ namespace GroupProject.App.BankManagement.Account
     [JsonProperty]
     protected virtual decimal Balance { get; set; }
 
+    public AccountBase()
+    {
+
+    }
     public AccountBase(AccountStatuses accStatus, AccountTypes accType, decimal balance = 0m, CurrencyTypes currencyType = CurrencyTypes.SEK)
     {
       AccountStatus = accStatus;

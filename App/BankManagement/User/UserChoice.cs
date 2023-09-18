@@ -3,8 +3,10 @@
   public enum UserChoice
   {
     NoChoiceReceived,
+    WelcomeScreen,
     Login,
     CreateCheckingsAccount,
+    CreateBankAccount,
     CreateSavingsAccount,
     CreateUserAccount,
     CreateAdminAccount,
@@ -13,6 +15,8 @@
     UpdateCurrencyExchange,
     MakeDeposit,
     MakeWithdrawal,
+    CustomerMenu,
+    AdminMenu,
     LoanMoney,
     ShowLog,
     Back,
@@ -21,4 +25,3 @@
     Unknown
   }
 }
-

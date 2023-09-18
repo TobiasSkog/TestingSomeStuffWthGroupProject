@@ -11,7 +11,12 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Spectre.Console" Version="0.47.0" />
-    <PackageReference Include="ValidationUtilityTobiasSkogNET23" Version="1.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ValidationUtility">
+      <HintPath>..\..\..\Libraries\Debug\net7.0\ValidationUtility.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

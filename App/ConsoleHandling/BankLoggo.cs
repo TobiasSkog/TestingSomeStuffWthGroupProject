@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace GroupProject.App.ConsoleHandling
 {
-    internal class BankLoggo
-    {
-        public static Markup Loggo = new(@"[rgb(128,54,176)]##(                                                    *####
+  internal class BankLoggo
+  {
+    public static string Loggo = new(@"##(                                                    *####
 ######(/,                                        ./(########
 ############*.                              .,##############
 .###############((                      /(###############,. 
@@ -28,6 +28,6 @@ namespace GroupProject.App.ConsoleHandling
        .*###############//      ,/(##############(..        
             ,/(#############################/*              
                   (#####################.                   
-                      ,*##########/,[/]");
-    }
+                      ,*##########/,");
+  }
 }
