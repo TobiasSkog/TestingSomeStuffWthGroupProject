@@ -1,6 +1,6 @@
 ﻿namespace GroupProject.App.BankManagement.Account
 {
-    public enum CurrencyType
+    public enum CurrencyTypes
     {
         SEK,    // Swedish Krona
         USD,    // United States Dollar

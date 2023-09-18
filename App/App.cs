@@ -1,4 +1,6 @@
-﻿using GroupProject.App.BankManagement.User;
+﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts;
+using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.EventLogs;
@@ -32,6 +34,8 @@ namespace GroupProject.App
       Database DB = new();
       Logger log = new();
       LogicHandler LH = new(DB, log);
+
+
 
       UserChoice userChoice;
       do

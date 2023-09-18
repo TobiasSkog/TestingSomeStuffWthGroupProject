@@ -3,8 +3,8 @@ using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
+using GroupProject.BankDatabase.JsonConverters;
 using Newtonsoft.Json;
-using Spectre.Console;
 using ValidationUtility;
 
 namespace GroupProject.BankDatabase
@@ -15,12 +15,12 @@ namespace GroupProject.BankDatabase
     private readonly string _FOLDER;
     private string _rootFolder = AppDomain.CurrentDomain.BaseDirectory;
     private readonly string _PATH;
+    private static readonly string _PATHACC = "CustomFiles\\Database\\Accounts.json";
 
     private List<UserBase> _users { get; set; }
 
     public Database(string data = "Users.json", string folder = "CustomFiles\\Database")
     {
-
 
       _DATA = data;
       _FOLDER = folder;
@@ -49,6 +49,18 @@ namespace GroupProject.BankDatabase
           ExceptionHelper.ExceptionDetails(ex);
         }
       }
+      if (!File.Exists(_PATHACC))
+      {
+        try
+        {
+          File.Create(_PATHACC).Close();
+        }
+        catch (Exception ex)
+        {
+          ExceptionHelper.ExceptionDetails(ex);
+          Console.ReadKey();
+        }
+      }
       else
       {
         LoadDataFromFile();
@@ -63,16 +75,35 @@ namespace GroupProject.BankDatabase
     }
     public UserBase? AttemptUserLogin(string username, string password)
     {
-      while (true)
+      UserBase user;
+      UserStatuses userStatus;
+      do
       {
-        if (UserNameExists(username))
+        user = GetUser(username);
+        userStatus = user.Login(username, password);
+
+        if (userStatus == UserStatuses.Locked)
         {
-          return GetUser(username);
+          ConsoleIO.WelcomeMenu();
         }
 
-        Console.WriteLine("\nCould not find user matching given username.\nTry again!");
-        username = StringValidationHelper.GetString("Enter username: ");
-      }
+        if (userStatus != UserStatuses.Success)
+        {
+          if (user.Username == username)
+          {
+            Console.WriteLine($"\nIncorrect password! {user.RemainingAttempts} attempts remaining.");
+            password = PasswordValidationHelper.PasswordValidation("\nEnter password: ");
+            user = AttemptUserLogin(username, password);
+          }
+          else
+          {
+            Console.WriteLine($"\nIncorrect username!");
+          }
+        }
+      } while (userStatus != UserStatuses.Success || userStatus == UserStatuses.Locked);
+
+
+      return user;
     }
 
     public void AddNewAccountToUser(UserBase user, AccountBase account)
@@ -91,7 +122,7 @@ namespace GroupProject.BankDatabase
     {
       try
       {
-        UserBase user = _users.Find(user => user.Username == username);
+        var user = _users.Find(user => user.Username == username);
         return user;
       }
       catch (Exception ex)
@@ -101,7 +132,7 @@ namespace GroupProject.BankDatabase
       }
     }
 
-    private bool UserNameExists(string username)
+    public bool UserNameExists(string username)
     {
       try
       {
@@ -119,17 +150,36 @@ namespace GroupProject.BankDatabase
     {
       try
       {
-        var settings = new JsonSerializerSettings
-        {
-          Converters = { new UserBaseConverter() },
-          ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-          NullValueHandling = NullValueHandling.Include
-        };
-
         using (StreamReader sr = new StreamReader(_PATH))
         {
           var jsonUsers = sr.ReadToEnd();
-          _users = JsonConvert.DeserializeObject<List<UserBase>>(jsonUsers, settings);
+          List<UserBase> users = JsonConvert.DeserializeObject<List<UserBase>>(jsonUsers, new JsonSerializerSettings
+          {
+            TypeNameHandling = TypeNameHandling.None,
+            Converters = { new CustomUserConverter() }
+          });
+
+          //List<UserBase> correctedList = new();
+          //foreach (UserBase user in users)
+          //{
+          //  if (user.UserType == UserTypes.Customer)
+          //  {
+          //    correctedList.Add(new UserCustomer(
+          //      user.FirstName,
+          //      user.LastName,
+          //      user.Username,
+          //      user.Salt,
+          //      user.HashedPassword,
+          //      user.RemainingAttempts,
+          //      user.
+          //      ));
+          //  }
+          //  else if (user.UserType == UserTypes.Admin)
+          //  {
+
+          //  }
+          //}
+          _users = users;
         }
       }
       catch (Exception ex)
@@ -139,40 +189,71 @@ namespace GroupProject.BankDatabase
 
       }
     }
-    private void SaveData()
+
+    public static List<AccountBase> GetAccountsInDatabase(List<string> accountIds)
     {
       try
       {
-        var settings = new JsonSerializerSettings
+
+        using (StreamReader sr = new StreamReader(_PATHACC))
         {
-          Converters = { new UserBaseConverter() },
-          ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-          NullValueHandling = NullValueHandling.Include
-        };
+          var jsonAccounts = sr.ReadToEnd();
+          List<AccountBase> accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
+          {
+            TypeNameHandling = TypeNameHandling.Objects,
+            Converters = { new CustomAccountConverter() }
+          });
 
-        var jsonUsers = JsonConvert.SerializeObject(_users, settings);
+          List<AccountBase> foundAccounts = new();
+          foreach (var account in accounts)
+          {
+            if (accountIds.Contains(account.AccountId))
+            {
+              foundAccounts.Add(account);
+            }
+          }
 
-        File.WriteAllText(_PATH, jsonUsers);
+          return foundAccounts;
+
+        }
       }
       catch (Exception ex)
       {
         ExceptionHelper.ExceptionDetails(ex);
+        Console.ReadKey();
+        return null;
+      }
+    }
+    public void SaveData()
+    {
+      try
+      {
+        using (StreamWriter file = File.CreateText(_PATH))
+        {
+          JsonSerializer serializer = new JsonSerializer();
+          serializer.Serialize(file, _users);
+        }
+      }
+      catch (Exception ex)
+      {
+        ExceptionHelper.ExceptionDetails(ex);
+        Console.ReadKey();
       }
     }
     private static List<UserBase> InitializeDatabaseWithDefaultData()
     {
       List<UserBase> createdUserList = new List<UserBase>()
       {
-        new UserAdmin(   "Tobias", "Skog"    , "adminTobias", "password", "912632161363", new DateTime(1991, 10, 28), UserType.Admin   ),
-        new UserAdmin(   "Aldor",  "Admin"   , "adminAldor" , "password", "126261236243", new DateTime(1980, 10, 21), UserType.Admin   ),
-        new UserAdmin(   "Reidar", "Admin"   , "adminReidar", "password", "643621611212", new DateTime(1980, 10, 21), UserType.Admin   ),
-        new UserCustomer("Aldor",  "User"    , "userAldor"  , "password", "112662362362", new DateTime(1970, 6, 1  ), UserType.Customer),
-        new UserCustomer("Reidar", "User"    , "userReidar" , "password", "643634644123", new DateTime(1996, 8, 1  ), UserType.Customer),
-        new UserCustomer("Dabba",  "Svensson", "userDabba"  , "password", "395315678456", new DateTime(2015, 1, 1  ), UserType.Customer),
-        new UserCustomer("Ebba",   "Svensson", "userEbba"   , "password", "345745678456", new DateTime(2016, 3, 30 ), UserType.Customer),
-        new UserCustomer("Fabba",  "Svensson", "userFabba"  , "password", "002461255321", new DateTime(2022, 4, 12 ), UserType.Customer),
-        new UserCustomer("Gabba",  "Svensson", "userGabba"  , "password", "886641486516", new DateTime(2015, 9, 22 ), UserType.Customer),
-        new UserCustomer("Habba",  "Svensson", "userHabba"  , "password", "888448484316", new DateTime(2018, 7, 26 ), UserType.Customer)
+        new UserAdmin(   "Tobias", "Skog"    , "adminTobias", "password", "912632161363", new DateTime(1991, 10, 28), UserTypes.Admin   ),
+        new UserAdmin(   "Aldor",  "Admin"   , "adminAldor" , "password", "126261236243", new DateTime(1980, 10, 21), UserTypes.Admin   ),
+        new UserAdmin(   "Reidar", "Admin"   , "adminReidar", "password", "643621611212", new DateTime(1980, 10, 21), UserTypes.Admin   ),
+        new UserCustomer("Aldor",  "User"    , "userAldor"  , "password", "112662362362", new DateTime(1970, 6, 1  ), UserTypes.Customer),
+        new UserCustomer("Reidar", "User"    , "userReidar" , "password", "643634644123", new DateTime(1996, 8, 1  ), UserTypes.Customer),
+        new UserCustomer("Dabba",  "Svensson", "userDabba"  , "password", "395315678456", new DateTime(2015, 1, 1  ), UserTypes.Customer),
+        new UserCustomer("Ebba",   "Svensson", "userEbba"   , "password", "345745678456", new DateTime(2016, 3, 30 ), UserTypes.Customer),
+        new UserCustomer("Fabba",  "Svensson", "userFabba"  , "password", "002461255321", new DateTime(2022, 4, 12 ), UserTypes.Customer),
+        new UserCustomer("Gabba",  "Svensson", "userGabba"  , "password", "886641486516", new DateTime(2015, 9, 22 ), UserTypes.Customer),
+        new UserCustomer("Habba",  "Svensson", "userHabba"  , "password", "888448484316", new DateTime(2018, 7, 26 ), UserTypes.Customer)
       };
 
       return createdUserList;

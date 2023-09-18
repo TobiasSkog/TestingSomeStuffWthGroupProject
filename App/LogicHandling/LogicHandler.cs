@@ -1,11 +1,11 @@
-﻿using GroupProject.App.BankManagement.Account.BankAccounts;
+﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
 using GroupProject.App.EventLogs;
 using GroupProject.BankDatabase;
-using Spectre.Console;
 using ValidationUtility;
 
 namespace GroupProject.App.LogicHandling
@@ -14,8 +14,8 @@ namespace GroupProject.App.LogicHandling
   {
     private UserChoice _choice { get; set; }
     private UserChoice _previousChoice { get; set; }
-    private UserStatus _status { get; set; }
-    private UserType _userType { get; set; }
+    private UserStatuses _status { get; set; }
+    private UserTypes _userType { get; set; }
     private UserBase? _user { get; set; }
     private Logger _log { get; set; }
     private Database _DB { get; set; }
@@ -25,8 +25,8 @@ namespace GroupProject.App.LogicHandling
       _log = log;
       _choice = UserChoice.NoChoiceReceived;
       _previousChoice = UserChoice.NoChoiceReceived;
-      _status = UserStatus.UserDoesNotExist;
-      _userType = UserType.NoUser;
+      _status = UserStatuses.UserDoesNotExist;
+      _userType = UserTypes.NoUser;
     }
     public UserChoice GetUserChoice()
     {
@@ -34,6 +34,7 @@ namespace GroupProject.App.LogicHandling
 
       while (true)
       {
+
         switch (_choice)
         {
           case UserChoice.Login:
@@ -41,18 +42,27 @@ namespace GroupProject.App.LogicHandling
             string username = StringValidationHelper.GetString("Enter username: ");
             string password = PasswordValidationHelper.PasswordValidation("Enter password: ", 2, 113, false, false, false);
 
+            //if (_DB.UserNameExists(username))
+            //{
             _user = _DB.AttemptUserLogin(username, password);
+
+            //}
+            //else
+            //{
+            //  _choice = UserChoice.Login;
+            //  break;
+            //}
             // ATTEMPT TO LOGIN
             // ACCOUNT NEED TO EXIST TO CONTINUE
             if (_user != null)
             {
-              _userType = _user.UserAccountType;
+              _userType = _user.UserType;
               _status = _user.Login(username, password);
               _previousChoice = _choice;
               _choice = GetUserStatus(_status);
               break;
             }
-            _status = UserStatus.FailedLogin;
+            _status = UserStatuses.FailedLogin;
             _previousChoice = _choice;
             _choice = GetUserStatus(_status);
             break;
@@ -60,7 +70,7 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.CreateCheckingsAccount:
             if (_user != null)
             {
-              CheckingsAccount checkingsAccount = new(_user);
+              CheckingsAccount checkingsAccount = new(AccountStatuses.Active, AccountTypes.Checking);
               _DB.AddNewAccountToUser(_user, checkingsAccount);
             }
             _previousChoice = _choice;
@@ -70,7 +80,7 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.CreateSavingsAccount:
             if (_user != null)
             {
-              SavingsAccount savingsAccount = new(_user);
+              SavingsAccount savingsAccount = new(AccountStatuses.Active, AccountTypes.Saving);
               _DB.AddNewAccountToUser(_user, savingsAccount);
               _previousChoice = _choice;
               _choice = UserChoice.Back;
@@ -81,7 +91,7 @@ namespace GroupProject.App.LogicHandling
 
 
           case UserChoice.CreateUserAccount:
-            if (_userType != UserType.Admin)
+            if (_userType != UserTypes.Admin)
             {
               _previousChoice = _choice;
               _choice = ConsoleIO.CustomerCreateUserAccount();
@@ -92,16 +102,16 @@ namespace GroupProject.App.LogicHandling
             break;
 
           case UserChoice.CreateCustomerAccount:
-            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserType.Customer);
+            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(UserTypes.Customer);
             _DB.AddNewUserToDatabase(userCustomer);
             _previousChoice = _choice;
             _choice = UserChoice.Back;
             break;
 
           case UserChoice.CreateAdminAccount:
-            if (_user != null && _userType == UserType.Admin)
+            if (_user != null && _userType == UserTypes.Admin)
             {
-              UserAdmin userAdmin = AccountManager.CreateUserAdminAccount(UserType.Admin);
+              UserAdmin userAdmin = AccountManager.CreateUserAdminAccount(UserTypes.Admin);
               _DB.AddNewUserToDatabase(userAdmin);
               _previousChoice = _choice;
               _choice = UserChoice.Back;
@@ -109,13 +119,13 @@ namespace GroupProject.App.LogicHandling
             break;
 
           case UserChoice.ListAllAccounts:
-            if (_userType == UserType.Customer)
+            if (_userType == UserTypes.Customer)
             {
               bool createAccount = _user.CheckIfUserHaveAnyAccounts();
               if (!createAccount)
               {
                 _previousChoice = _choice;
-                _choice = ConsoleIO.CustomerAccountList(_user.Accounts, _user);
+                _choice = ConsoleIO.CustomerAccountList(_user.AccountIds, _user);
 
               }
               _previousChoice = _choice;
@@ -128,7 +138,7 @@ namespace GroupProject.App.LogicHandling
 
           // I'M HERE!!!!
           case UserChoice.UpdateCurrencyExchange:
-            if (_userType == UserType.Admin)
+            if (_userType == UserTypes.Admin)
             {
               _previousChoice = _choice;
               _choice = ConsoleIO.AdminCurrencyExchangeMenu();
@@ -187,14 +197,14 @@ namespace GroupProject.App.LogicHandling
         }
       }
     }
-    private UserChoice GetUserStatus(UserStatus status)
+    private UserChoice GetUserStatus(UserStatuses status)
     {
       switch (status)
       {
-        case UserStatus.Success:
+        case UserStatuses.Success:
           _log.LogSuccessfulEvent("USERLOGIN", $"{_user.Username} logged in successfuly.");
           _user.AddToLog($"User logged in at {DateTime.Now}.");
-          if (_userType == UserType.Admin)
+          if (_userType == UserTypes.Admin)
           {
             return ConsoleIO.AdminMenu();
           }
@@ -203,7 +213,7 @@ namespace GroupProject.App.LogicHandling
             return ConsoleIO.CustomerMenu();
           }
 
-        case UserStatus.FailedLogin:
+        case UserStatuses.FailedLogin:
           if (_user != null)
           {
             Console.WriteLine($"\nFailed to login! {_user.RemainingAttempts} attempts remaining.");
@@ -218,7 +228,7 @@ namespace GroupProject.App.LogicHandling
 
           return UserChoice.Login;
 
-        case UserStatus.Locked:
+        case UserStatuses.Locked:
           _log.LogWarning($"User failed to login in at {DateTime.Now} and are now locked for 15 minutes");
           ConsoleIO.WriteLockedMenu();
           return ConsoleIO.WelcomeMenu();

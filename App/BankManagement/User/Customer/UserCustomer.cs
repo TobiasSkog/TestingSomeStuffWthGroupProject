@@ -1,22 +1,42 @@
-﻿using GroupProject.App.BankManagement.Account;
-using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
-using GroupProject.App.BankManagement.Interfaces;
-using GroupProject.App.BankManagement.User.Admin;
-using GroupProject.App.ConsoleHandling;
-using System.Runtime.Serialization;
-using ValidationUtility;
+﻿using Newtonsoft.Json;
 
 namespace GroupProject.App.BankManagement.User.Customer
 {
   public class UserCustomer : UserBase
   {
-    public UserCustomer() : base()
+
+    public UserCustomer()
     {
 
     }
-    public UserCustomer(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserType userType) : base(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType)
+    public UserCustomer(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserTypes userType) : base(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType)
     {
 
+    }
+
+    [JsonConstructor]
+    public UserCustomer(string firstName, string lastName, string username, string salt, string hashedPassword, sbyte remainingAttempts, string userId, string socialSecurityNumber, DateTime dateOfBirth, UserTypes userType, UserStatuses userStatus, List<String> accountIds = null)
+    {
+      FirstName = firstName;
+      LastName = lastName;
+      Username = username;
+      Salt = salt;
+      HashedPassword = hashedPassword;
+      RemainingAttempts = remainingAttempts;
+      UserId = userId;
+      SocialSecurityNumber = socialSecurityNumber;
+      DateOfBirth = dateOfBirth;
+      UserType = userType;
+      UserStatus = userStatus;
+      if (accountIds == null)
+      {
+        AccountIds = new List<string>();
+      }
+      else
+      {
+        AccountIds = accountIds;
+      }
+      UserLog = new List<string>();
     }
   }
 }

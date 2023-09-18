@@ -6,20 +6,21 @@ using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.Account.BankAccounts
 {
-    public class CheckingsAccount : AccountBase
+  public class CheckingsAccount : AccountBase
+  {
+
+    public CheckingsAccount(AccountStatuses accStatus, AccountTypes accType, decimal balance = 0, CurrencyTypes accountCurrencyType = CurrencyTypes.SEK) : base(accStatus, accType, balance, accountCurrencyType)
     {
 
-        public CheckingsAccount(UserBase user) : base(AccountStatus.Active, AccountType.Checking, user, 0)
-        {
-
-        }
-        public CheckingsAccount(AccountStatus accStatus, AccountType accType, UserBase accOwner, decimal balance = 0) : base(accStatus, accType, accOwner, balance)
-        {
-
-        }
-        public CheckingsAccount CreateSavingsAccount(UserBase user)
-        {
-            return default;
-        }
     }
+    public CheckingsAccount(string accountId, decimal balance = 0, AccountStatuses accStatus = AccountStatuses.Active, CurrencyTypes accountCurrencyType = CurrencyTypes.SEK) : base(accStatus, AccountTypes.Checking, balance, accountCurrencyType)
+    {
+      AccountId = accountId;
+    }
+
+    public void CreateCheckingsAccount(UserBase user)
+    {
+      user.AccountIds.Add(AccountId);
+    }
+  }
 }

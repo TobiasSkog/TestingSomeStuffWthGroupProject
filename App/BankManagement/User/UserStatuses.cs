@@ -1,6 +1,6 @@
 ﻿namespace GroupProject.App.BankManagement.User
 {
-  public enum UserStatus
+  public enum UserStatuses
   {
     Active,
     Locked,

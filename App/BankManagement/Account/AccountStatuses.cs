@@ -1,8 +1,8 @@
 ﻿namespace GroupProject.App.BankManagement.Account
 {
-    public enum AccountType
+    public enum AccountStatuses
     {
-        Checking,
-        Saving
+        Active,
+        Locked
     }
 }

@@ -1,8 +1,6 @@
 ﻿using GroupProject.App.BankManagement.Account;
-using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
-using GroupProject.App.BankManagement.User.Admin;
-using GroupProject.App.BankManagement.User.Customer;
+using GroupProject.BankDatabase;
 using Spectre.Console;
 using ValidationUtility;
 
@@ -13,6 +11,8 @@ namespace GroupProject.App.ConsoleHandling
     public static void StartUp()
     {
       AnsiConsole.Clear();
+      //read.Sleep(5000);
+
       Console.BackgroundColor = ConsoleColor.Black;
       AnsiConsole.Cursor.Hide();
       AnsiConsole.Write(BankLoggo.Loggo.LeftJustified());
@@ -191,7 +191,7 @@ namespace GroupProject.App.ConsoleHandling
       AnsiConsole.Clear();
       return enumChoice;
     }
-    public static UserChoice CustomerAccountList(List<AccountBase> accounts, UserBase user)
+    public static UserChoice CustomerAccountList(List<string> accountIds, UserBase user)
     {
       Grid grid = new();
 
@@ -201,13 +201,13 @@ namespace GroupProject.App.ConsoleHandling
                 new Text($"{user.SocialSecurityNumber}", new Style(Color.MediumPurple2, Color.Black)).Centered(),
                 new Text($"Time: {DateTime.UtcNow:D}", new Style(Color.MediumPurple2, Color.Black)).RightJustified(),
             });
-
+      List<AccountBase> accounts = Database.GetAccountsInDatabase(accountIds);
       foreach (AccountBase account in accounts)
       {
         grid.AddRow(new Text[]{
-                    new Text($"{account.GetBalance(UserType.Admin)}{account.GetCurrencyType(UserType.Admin)}", new Style(Color.LightSteelBlue, Color.Black)).LeftJustified(),
-                    new Text($"{account.GetAccountNumber(UserType.Admin)}", new Style(Color.LightSteelBlue, Color.Black)).Centered(),
-                    new Text($"{account.GetAccountType(UserType.Admin)}", new Style(Color.LightSteelBlue, Color.Black)).RightJustified(),
+                    new Text($"{account.GetBalance()}{account.CurrencyType}", new Style(Color.LightSteelBlue, Color.Black)).LeftJustified(),
+                    new Text($"{account.AccountNumber}", new Style(Color.LightSteelBlue, Color.Black)).Centered(),
+                    new Text($"{account.AccountType}", new Style(Color.LightSteelBlue, Color.Black)).RightJustified(),
                 });
       }
 
