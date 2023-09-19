@@ -1,6 +1,8 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.BankManagement.User;
+using GroupProject.App.LogicHandling;
 using GroupProject.BankDatabase;
+using GroupProject.BankDatabase.EventLogs;
 using Spectre.Console;
 using ValidationUtility;
 using Text = Spectre.Console.Text;
@@ -170,7 +172,7 @@ namespace GroupProject.App.ConsoleHandling
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static string CreateUsername(string prompt, Database DB)
+    public static string CreateUsername(string prompt)
     {
       string input = AnsiConsole.Prompt(
         new TextPrompt<string>($"[{userPromptColor}]{prompt}[/]")
@@ -179,7 +181,6 @@ namespace GroupProject.App.ConsoleHandling
         .Validate(username =>
         {
           var controlledUsername = UsernameValidationHelper.SpectreConsoleUsernameValidation(username, 5, 20, true, true);
-          bool existingUserName = DB.UserNameExists(controlledUsername.Username);
           if (controlledUsername.ErrorMessages.Count <= 0)
           {
             input = controlledUsername.Username;
@@ -405,12 +406,36 @@ namespace GroupProject.App.ConsoleHandling
                         $"[{userChoiceColor}]Create bank account[/]",
                         $"[{userChoiceColor}]Loan money[/]",
 
+                        $"[{userChoiceColor}]Logout[/]",
                         $"[{exitColor}]Exit[/]",
       }));
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static UserChoice CustomerCreateUserAccount() => UserChoice.CreateCustomerAccount;
+    public static UserChoice WhatKindOfAccountMenu()
+    {
+      //;
+      //ConsoleIO.CustomerCreateUserAccount();
+
+      AnsiConsole.Clear();
+      WriteDividerAdmin("User Account Creation Menu | Eudgrade Online Banking");
+
+      var choice = AnsiConsole.Prompt(
+          new SelectionPrompt<string>()
+              .Title($"[{adminPromptColor}]What kind of account would you like to create?[/]")
+              .PageSize(9)
+              .HighlightStyle("gold3_1")
+              .AddChoices(new[]
+              {
+                         $"[{adminChoiceColor}]Create customer account[/]",
+                         $"[{adminChoiceColor}]Create admin account[/]",
+
+                         $"[{adminChoiceColor}]Back[/]"
+      }));
+
+
+      return ChoiceEscapeMarkup(choice);
+    }
 
     public static CurrencyTypes GetCurrencyTypeFromList()
     {
@@ -474,40 +499,92 @@ namespace GroupProject.App.ConsoleHandling
       Console.WriteLine("CreateCheckingsAccount: 480");
       return default;
     }
-    public static UserChoice CustomerAccountList(List<string> accountIds, UserBase user)
+    public static UserChoice CustomerAccountList(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDivider($"{user.FirstName + " " + user.LastName} account list | Eudgrade Online Banking");
+      WriteDivider($"{user.FirstName + " " + user.LastName} recent activity log | Eudgrade Online Banking");
 
-      Grid grid = new Grid();
-      //Grid embededDivider = new();
-      //embededDivider.AddColumn();
-      //embededDivider.AddRow(new Rule($"[{userDividerTextColor}]{user.FirstName + " " + user.LastName}[/]").RuleStyle(userDivider).LeftJustified());
+      Rule accDivider = new Rule().RuleStyle(userChoiceColor);
 
-      grid.AddColumns(accountIds.Count + 3);
-      grid.AddRow(new Text[]
+
+      List<AccountBase> userAccounts = Database.LoadUserAccounts(user.AccountIds);
+
+      var table = new Table()
+          .Border(TableBorder.Double)
+          .BorderColor(userChoiceColor)
+          .LeftAligned()
+          .Collapse()
+          .AddColumns(
+            new TableColumn($"[{userPromptColor}]Balance[/]").Centered(),
+            new TableColumn($"[{userPromptColor}]Account Number[/]").Centered(),
+            new TableColumn($"[{userPromptColor}]Account Type[/]").Centered()
+          );
+
+      foreach (var account in userAccounts)
       {
-        new Text($"{user.FirstName}", new Style(userPromptColor, Color.Black)).LeftJustified(),
-        new Text($"{user.SocialSecurityNumber}", new Style(userPromptColor, Color.Black)).Centered(),
-        new Text($"Time: {DateTime.UtcNow:D}", new Style(userPromptColor, Color.Black)).RightJustified()
-      });
-
-
-      List<AccountBase> accounts = Database.GetAccountsInDatabase(accountIds);
-      foreach (AccountBase account in accounts)
-      {
-        grid.AddRow(new Text[]
-  {
-                    new Text($"{account.GetBalance()}{account.CurrencyType}", new Style(userChoiceColor, Color.Black)).LeftJustified(),
-                    new Text($"{account.AccountNumber}", new Style(userChoiceColor, Color.Black)).Centered(),
-                    new Text($"{account.AccountType}", new Style(userChoiceColor, Color.Black)).RightJustified(),
-  });
+        string balance = $"[{userPromptColor}]{account.GetBalance()} {account.CurrencyType}[/]";
+        table.AddRow(balance, $"[{userPromptColor}]{account.AccountNumber}[/]", $"[{userPromptColor}]{account.AccountType}[/]").LeftAligned();
+        table.AddRow(accDivider, accDivider, accDivider);
       }
-      AnsiConsole.Write(grid);
 
-      //AnsiConsole.Clear();
-      Thread.Sleep(5000);
-      return UserChoice.CustomerMenu;
+      table.RemoveRow(userAccounts.Count * 2 - 1);
+
+      AnsiConsole.Write(table);
+
+      var choice = AnsiConsole.Prompt(
+        new SelectionPrompt<string>()
+        .Title($"[{adminPromptColor}][/]")
+        .PageSize(3)
+        .HighlightStyle("gold3_1")
+        .AddChoices(new[]
+        {
+          $"[{adminChoiceColor}]Back[/]"
+        }));
+
+      return ChoiceEscapeMarkup(choice);
+    }
+
+    public static UserChoice CustomerLog(UserBase user)
+    {
+      AnsiConsole.Clear();
+
+      Rule logDivider = new Rule().RuleStyle(userChoiceColor);
+      WriteDivider($"{user.FirstName + " " + user.LastName} user logs | Eudgrade Online Banking");
+
+      var filteredLogs = user.UserLog;
+
+      var table = new Table()
+          .Border(TableBorder.Double)
+          .BorderColor(userChoiceColor)
+          .LeftAligned()
+          .Collapse()
+          .AddColumns(
+            new TableColumn($"[{userPromptColor}]Time[/]").Centered(),
+            new TableColumn($"[{userPromptColor}]Event[/]").Centered(),
+            new TableColumn($"[{userPromptColor}]Event Details[/]").Centered()
+          );
+
+      foreach (var log in filteredLogs)
+      {
+        table.AddRow($"[{userPromptColor}{log.Timestamp}[/]", $"[{userPromptColor}]{log.EventCategory}[/]", $"[{userPromptColor}]{log.Message}[/]").LeftAligned();
+        table.AddRow(logDivider, logDivider, logDivider);
+      }
+
+      table.RemoveRow(filteredLogs.Count * 2 - 1);
+
+      AnsiConsole.Write(table);
+
+      var choice = AnsiConsole.Prompt(
+        new SelectionPrompt<string>()
+        .Title($"[{adminPromptColor}][/]")
+        .PageSize(3)
+        .HighlightStyle("gold3_1")
+        .AddChoices(new[]
+        {
+          $"[{adminChoiceColor}]Back[/]"
+        }));
+
+      return ChoiceEscapeMarkup(choice);
     }
     public static void WriteLockedMenu()
     {

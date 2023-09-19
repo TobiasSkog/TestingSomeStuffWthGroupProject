@@ -1,5 +1,7 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.ConsoleHandling;
+using GroupProject.BankDatabase.EventLogs;
+using GroupProject.BankDatabase.EventLogs.Events;
 using Newtonsoft.Json;
 using ValidationUtility;
 
@@ -32,8 +34,7 @@ namespace GroupProject.App.BankManagement.User
     public virtual UserStatuses UserStatus { get; protected set; }
     [JsonProperty]
     public List<string> AccountIds { get; protected set; }
-
-    public virtual List<string> UserLog { get; protected set; }
+    public List<EventLog> UserLog { get; protected set; }
 
     /// <summary>
     /// Used for the Json Deserialization to be able to recreate a user
@@ -41,7 +42,7 @@ namespace GroupProject.App.BankManagement.User
 
     public UserBase()
     {
-      UserLog = new List<string>();
+      UserLog = new List<EventLog>();
     }
     public UserBase(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserTypes userType)
     {
@@ -59,16 +60,17 @@ namespace GroupProject.App.BankManagement.User
         RemainingAttempts = 3;
         UserId = StringValidationHelper.CreateRandomString();
         AccountIds = new List<string>();
-        UserLog = new List<string>();
+        UserLog = new List<EventLog>();
       }
     }
 
-    public virtual void AddToLog(string log)
+    public virtual void AddToLog(EventLog log)
     {
       if (UserLog == null)
       {
-        UserLog = new List<string>();
+        UserLog = new List<EventLog>();
       }
+
       UserLog.Add(log);
     }
     public virtual void AddAccount(AccountBase account)
@@ -77,26 +79,34 @@ namespace GroupProject.App.BankManagement.User
       {
         AccountIds = new List<string>();
       }
+
       AccountIds.Add(account.AccountId);
     }
     public virtual UserStatuses Login(string username, string password)
     {
-      RemainingAttempts--;
-
-      if (RemainingAttempts < 0 || UserStatus == UserStatuses.Locked)
+      if (RemainingAttempts <= 0 || UserStatus == UserStatuses.Locked)
       {
         return UserStatuses.Locked;
       }
+
+      RemainingAttempts--;
+
       if (username == Username)
       {
-
         bool validPassword = BCrypt.Net.BCrypt.Verify(password + Salt, HashedPassword);
+
         if (validPassword)
         {
           RemainingAttempts = 3;
           return UserStatuses.Success;
         }
+
+        if (RemainingAttempts <= 0)
+        {
+          return UserStatuses.Locked;
+        }
       }
+
       return UserStatuses.FailedLogin;
     }
     public virtual UserChoice ShowLog()

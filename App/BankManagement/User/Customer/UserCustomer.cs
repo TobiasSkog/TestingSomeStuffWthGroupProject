@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using GroupProject.BankDatabase.EventLogs;
+using Newtonsoft.Json;
 
 namespace GroupProject.App.BankManagement.User.Customer
 {
@@ -36,7 +37,7 @@ namespace GroupProject.App.BankManagement.User.Customer
       {
         AccountIds = accountIds;
       }
-      UserLog = new List<string>();
+      UserLog = new List<EventLog>();
     }
   }
 }

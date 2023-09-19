@@ -1,8 +1,5 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.BankManagement.Account.BankAccounts;
-using GroupProject.App.BankManagement.User;
-using GroupProject.App.BankManagement.User.Admin;
-using GroupProject.App.BankManagement.User.Customer;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

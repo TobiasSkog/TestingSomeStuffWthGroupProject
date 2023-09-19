@@ -4,6 +4,7 @@ using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
+using GroupProject.BankDatabase.EventLogs;
 using GroupProject.BankDatabase.JsonConverters;
 using Newtonsoft.Json;
 using ValidationUtility;
@@ -14,19 +15,19 @@ namespace GroupProject.BankDatabase
   {
     private readonly string _DATA;
     private readonly string _FOLDER;
-    private string _rootFolder = AppDomain.CurrentDomain.BaseDirectory;
     private readonly string _PATH;
+    private Logger Logger { get; set; }
     private static readonly string _PATHACC = "CustomFiles\\Database\\Accounts.json";
-
     private List<UserBase> _users { get; set; }
     private List<AccountBase> _accounts { get; set; }
 
-    public Database(string data = "Users.json", string folder = "CustomFiles\\Database")
+    public Database(Logger logger, string data = "Users.json", string folder = "CustomFiles\\Database")
     {
 
       _DATA = data;
       _FOLDER = folder;
       _PATH = Path.Combine(_FOLDER, _DATA);
+      Logger = logger;
       bool foundDatabase = File.Exists(_PATH);
       bool foundAccounts = File.Exists(_PATHACC);
       if (!Directory.Exists(_FOLDER))
@@ -75,17 +76,12 @@ namespace GroupProject.BankDatabase
 
       ConsoleIO.StartUp();
     }
-    public void AddUser(UserBase user)
+    internal void AddUser(UserBase user)
     {
       _users.Add(user);
       SaveData();
     }
-    public UserBase? AttemptUserLogin(string username, string password)
-    {
-      return GetUser(username);
-    }
-
-    public void AddNewAccountToUser(UserBase user, AccountBase account)
+    internal void AddNewAccountToUser(UserBase user, AccountBase account)
     {
       user.AddAccount(account);
       _users.Remove(user);
@@ -94,12 +90,12 @@ namespace GroupProject.BankDatabase
       SaveData();
     }
 
-    public void AddNewUserToDatabase(UserBase user)
+    internal void AddNewUserToDatabase(UserBase user)
     {
       _users.Add(user);
       SaveData();
     }
-    private UserBase? GetUser(string username)
+    internal UserBase? GetUser(string username)
     {
       try
       {
@@ -118,7 +114,7 @@ namespace GroupProject.BankDatabase
       }
     }
 
-    public bool UserNameExists(string username)
+    internal bool UserNameExists(string username)
     {
       try
       {
@@ -136,6 +132,7 @@ namespace GroupProject.BankDatabase
       }
 
     }
+
     private void LoadDataFromFile()
     {
       try
@@ -172,7 +169,7 @@ namespace GroupProject.BankDatabase
       }
     }
 
-    public static List<AccountBase> GetAccountsInDatabase(List<string> accountIds)
+    internal static List<AccountBase> LoadUserAccounts(List<string> accountIds)
     {
       try
       {
@@ -206,7 +203,7 @@ namespace GroupProject.BankDatabase
         return null;
       }
     }
-    public void SaveData(bool saveDatabase = true, bool saveAccounts = true)
+    internal void SaveData(bool saveDatabase = true, bool saveAccounts = true)
     {
       try
       {
@@ -263,4 +260,3 @@ namespace GroupProject.BankDatabase
     }
 
   }
-}

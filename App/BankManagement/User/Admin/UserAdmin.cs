@@ -1,4 +1,5 @@
 ﻿using GroupProject.App.ConsoleHandling;
+using GroupProject.BankDatabase.EventLogs;
 using Newtonsoft.Json;
 
 namespace GroupProject.App.BankManagement.User.Admin
@@ -36,7 +37,7 @@ namespace GroupProject.App.BankManagement.User.Admin
       {
         AccountIds = accountIds;
       }
-      UserLog = new List<string>();
+      UserLog = new List<EventLog>();
     }
     public UserChoice UpdateCurrencyExchange()
     {

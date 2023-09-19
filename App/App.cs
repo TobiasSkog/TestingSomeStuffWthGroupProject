@@ -4,9 +4,9 @@ using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
-using GroupProject.App.EventLogs;
 using GroupProject.App.LogicHandling;
 using GroupProject.BankDatabase;
+using GroupProject.BankDatabase.EventLogs;
 using Spectre.Console;
 
 namespace GroupProject.App
@@ -31,10 +31,9 @@ namespace GroupProject.App
        * Username: userReidar
        * Password: password
       */
-
-      Database DB = new();
-      Logger log = new();
-      LogicHandler LH = new(DB, log);
+      Logger logger = new();
+      Database DB = new(logger);
+      LogicHandler LH = new(DB, logger);
 
       UserChoice userChoice;
       do
