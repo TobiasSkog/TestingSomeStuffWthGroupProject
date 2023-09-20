@@ -1,4 +1,7 @@
 ﻿using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
+using GroupProject.App.BankManagement.User;
+using GroupProject.BankDatabase;
+using GroupProject.BankDatabase.EventLogs;
 
 namespace GroupProject.App.LogicHandling
 {
@@ -7,17 +10,18 @@ namespace GroupProject.App.LogicHandling
   public class TransactionScheduler
   {
     private Timer _timer;
-    private List<Transaction> _pendingTransactions = new List<Transaction>();
-    public TransactionScheduler(int timerDelayMinutes)
+    private List<AccountTransaction> _pendingTransactions = new List<AccountTransaction>();
+    private Logger _logger;
+    private Database _database;
+    public TransactionScheduler(int timerDelayMinutes, Logger logger, Database database)
     {
-      Console.WriteLine("Test");
-
+      _logger = logger;
+      _database = database;
       _timer = new Timer(ExecuteScheduledTransaction, null, TimeSpan.Zero, TimeSpan.FromSeconds(timerDelayMinutes));
     }
 
     private void ExecuteScheduledTransaction(object state)
     {
-      Console.WriteLine("Test22");
 
       Console.WriteLine("Executing scheduled transaction at: " + DateTime.Now);
       if (_pendingTransactions.Count > 0)
@@ -31,13 +35,21 @@ namespace GroupProject.App.LogicHandling
       _pendingTransactions.Clear();
     }
 
-    private void ProcessTransaction(Transaction transaction)
+    private void ProcessTransaction(AccountTransaction transaction)
     {
-      //transaction.User
-      //transaction.User.Accounts;
+      EventLog transactionLog = transaction.ProcessTransaction(transaction, UserType.Admin);
+      Console.WriteLine(transactionLog.ToString());
+      _logger.Log(transactionLog);
+      if (transactionLog.Message.Contains("Successfuly"))
+      {
+        Console.WriteLine("Transaction was successfull. Saving Database with new account information");
+        _database.UpdateAccountDatabase(transaction.SourceAccount);
+      }
+
+
     }
 
-    public void QueueTransaction(Transaction transaction)
+    public void QueueTransaction(AccountTransaction transaction)
     {
       _pendingTransactions.Add(transaction);
     }

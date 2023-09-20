@@ -1,45 +1,42 @@
-﻿using GroupProject.App.BankManagement.Account;
-using GroupProject.App.BankManagement.Account.BankAccounts;
+﻿using GroupProject.App.BankManagement.User.Admin;
+using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.BankDatabase.EventLogs;
 using GroupProject.BankDatabase.EventLogs.Events;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Runtime.InteropServices.JavaScript;
-using System.Text.Json.Nodes;
 
 
 namespace GroupProject.BankDatabase.JsonConverters
 {
   public class CustomLogConverter : JsonConverter<EventLog>
   {
-
     public override EventLog? ReadJson(JsonReader reader, Type objectType, EventLog existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
       JObject jsonObject = JObject.Load(reader);
+      int category = jsonObject.GetValue("EventCategory").ToObject<int>();
 
-      string? category = jsonObject["EventCategory"]?.Value<string>();
-
-      switch (category)
+      Type targetType = category switch
       {
-        case "AccountCreation":
-          return jsonObject.ToObject<AccountCreationLog>();
-        case "Transaction":
-          return jsonObject.ToObject<TransactionLog>();
-        case "Connection":
-          return jsonObject.ToObject<ConnectionLog>();
-        default:
-          return jsonObject.ToObject<EventLog>();
-      }
+        0 => typeof(ConnectionLog),
+        1 => typeof(AccountCreationLog),
+        2 => typeof(TransactionLog),
+        3 => typeof(WarningLog),
+        _ => throw new NotSupportedException("Unkown EventCategory")
+      };
+      EventLog result = (EventLog)Activator.CreateInstance(targetType);
+      serializer.Populate(jsonObject.CreateReader(), result);
+      return result;
     }
 
     public override void WriteJson(JsonWriter writer, EventLog value, JsonSerializer serializer)
     {
       // Define the structure of the JSON object as you need it
       var json = new JObject(
-          new JProperty("EventCategory", value.EventCategory.ToString()),
+          new JProperty("Username", value.Username),
+          new JProperty("LogID", value.LogID),
+          new JProperty("EventCategory", value.EventCategory),
           new JProperty("Message", value.Message),
-          new JProperty("Timestamp", value.Timestamp),
-          new JProperty("Username", value.Username)
+          new JProperty("Timestamp", value.Timestamp)
           );
 
       json.WriteTo(writer);

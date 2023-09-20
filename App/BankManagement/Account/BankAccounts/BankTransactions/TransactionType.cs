@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 
 namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
 {
-    public enum TransactionType
-    {
-        Withdraw,
-        Deposit,
-        TransferOwnAccount,
-        TransferTargetAccount,
-        Rent
-    }
+  public enum TransactionType
+  {
+    Withdraw,
+    Deposit,
+    Transfer,
+    Loan
+  }
 }

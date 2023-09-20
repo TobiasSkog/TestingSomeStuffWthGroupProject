@@ -1,7 +1,9 @@
-﻿using GroupProject.App.ConsoleHandling;
+﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
+using GroupProject.App.ConsoleHandling;
 using GroupProject.BankDatabase.EventLogs;
+using GroupProject.BankDatabase.EventLogs.Events;
 using Newtonsoft.Json;
-
 namespace GroupProject.App.BankManagement.User.Admin
 {
   public class UserAdmin : UserBase
@@ -11,12 +13,12 @@ namespace GroupProject.App.BankManagement.User.Admin
     {
 
     }
-    public UserAdmin(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserTypes userType = UserTypes.Admin) : base(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType)
+    public UserAdmin(string firstName, string lastName, string username, string password, string socialSecurityNumber, DateTime dateOfBirth, UserType userType = UserType.Admin) : base(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, userType)
     {
 
     }
     [JsonConstructor]
-    public UserAdmin(string firstName, string lastName, string username, string salt, string hashedPassword, sbyte remainingAttempts, string userId, string socialSecurityNumber, DateTime dateOfBirth, UserTypes userType, UserStatuses userStatus, List<String> accountIds = null)
+    public UserAdmin(string firstName, string lastName, string username, string salt, string hashedPassword, sbyte remainingAttempts, string userId, string socialSecurityNumber, DateTime dateOfBirth, UserType userType, UserStatuses userStatus, UserLogs userLog, List<string> logIds, List<String> accountIds = null)
     {
       FirstName = firstName;
       LastName = lastName;
@@ -37,11 +39,47 @@ namespace GroupProject.App.BankManagement.User.Admin
       {
         AccountIds = accountIds;
       }
-      UserLog = new List<EventLog>();
+      if (userLog == null)
+      {
+        UserLog = new UserLogs();
+      }
+      else
+      {
+        UserLog = userLog;
+      }
+      if (logIds == null)
+      {
+        LogIds = new List<string>();
+      }
+      else
+      {
+        LogIds = logIds;
+      }
     }
     public UserChoice UpdateCurrencyExchange()
     {
-      return ConsoleIO.AdminCurrencyExchangeMenu();
+      return ConsoleIO.AdminCurrencyExchangeMenu(this);
+    }
+
+    public override (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeDeposit()
+    {
+      //AccountBase? sourceAccount;
+      TransactionLog log;
+
+      var sourceAccount = ConsoleIO.GetSpecificAccount(this);
+      if (sourceAccount == null)
+      {
+        log = new TransactionLog(Username, "FailedToMakeDeposit", 0, "Account Not Found", "Account Not Found");
+        return (Choice: UserChoice.CustomerMenu, Transaction: null, Log: log);
+      }
+      decimal amount = ConsoleIO.AmountOfMoney("Amount to deposit");
+      AccountTransaction transaction = sourceAccount.DepositMoney(this, amount);
+
+      log = new TransactionLog(Username, "Made a deposit", amount, sourceAccount.AccountNumber, sourceAccount.AccountNumber);
+
+      AddToLog(log);
+
+      return (Choice: UserChoice.CustomerMenu, Transaction: transaction, Log: log);
     }
   }
 }

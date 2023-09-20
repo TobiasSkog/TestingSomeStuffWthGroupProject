@@ -6,16 +6,16 @@ namespace GroupProject.BankDatabase.EventLogs.Events
   {
     public AccountCreationLog()
     {
-      EventCategory = EventCategory.AccountCreation;
+      EventCategory = EventCategorys.AccountCreation;
     }
     public AccountCreationLog(string username, string message) : base(username)
     {
-      EventCategory = EventCategory.AccountCreation;
+      EventCategory = EventCategorys.AccountCreation;
       Message = message;
     }
 
     [JsonConstructor]
-    public AccountCreationLog(DateTime timestamp, EventCategory category, string message, string username, Exception ex = null)
+    public AccountCreationLog(DateTime timestamp, EventCategorys category, string message, string username, Exception ex = null)
     {
       Timestamp = timestamp;
       EventCategory = category;

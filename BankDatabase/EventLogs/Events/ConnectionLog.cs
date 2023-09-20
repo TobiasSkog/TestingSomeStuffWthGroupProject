@@ -6,16 +6,16 @@ namespace GroupProject.BankDatabase.EventLogs.Events
   {
     public ConnectionLog()
     {
-      EventCategory = EventCategory.Connection;
+      EventCategory = EventCategorys.Connection;
     }
     public ConnectionLog(string username, string message) : base(username)
     {
-      EventCategory = EventCategory.Connection;
+      EventCategory = EventCategorys.Connection;
       Message = message;
     }
 
     [JsonConstructor]
-    public ConnectionLog(DateTime timestamp, EventCategory category, string message, string username, Exception ex = null)
+    public ConnectionLog(DateTime timestamp, EventCategorys category, string message, string username, Exception ex = null)
     {
       Timestamp = timestamp;
       EventCategory = category;

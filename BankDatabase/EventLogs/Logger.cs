@@ -1,93 +1,130 @@
-﻿using GroupProject.App.BankManagement.User;
+﻿using GroupProject.BankDatabase.EventLogs.Events;
 using GroupProject.BankDatabase.JsonConverters;
 using Newtonsoft.Json;
-using System.IO;
+using System.Threading;
 using ValidationUtility;
-using static System.Reflection.Metadata.BlobBuilder;
 
 namespace GroupProject.BankDatabase.EventLogs
 {
   public class Logger
   {
-    private readonly string[] _LOGFILENAMES;
-    private readonly string[] _BASEFOLDERS;
+    private readonly string _USERLOGS;
+    private readonly string _FOLDERUSER;
+    private readonly string _DATABASELOGS;
+    private readonly string _FOLDERDATABASE;
+    private readonly string _PATHUSER;
+    private readonly string _PATHDATABASE;
+    private readonly int _saveInterval = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+    private CancellationTokenSource _cancellationTokenSource;
+
+    private EventLog _databaseLogs;
+    private UserLogs _userLogs { get; set; }
 
 
     public Logger()
     {
-      _LOGFILENAMES = new string[]
-      {
-        "UserLogs.json",
-        "DatabaseLogs.json"
-      };
-      _BASEFOLDERS = new string[]
-      {
-        "CustomFiles\\EventLogs\\UserLogs",
-        "CustomFiles\\EventLogs\\DatabaseLogs"
-      };
+      _userLogs = new UserLogs();
+      _databaseLogs = new ConnectionLog("LOGGER", "Created the connection between the logger and the database");
+      _USERLOGS = "UserLogs.json";
+      _DATABASELOGS = "DatabaseLogs.json";
+
+      _FOLDERUSER = "CustomFiles\\EventLogs\\UserLogs";
+      _FOLDERDATABASE = "CustomFiles\\EventLogs\\DatabaseLogs";
+
+      _PATHUSER = Path.Combine(_FOLDERUSER, _USERLOGS);
+      _PATHDATABASE = Path.Combine(_FOLDERDATABASE, _DATABASELOGS);
+
+      _cancellationTokenSource = new CancellationTokenSource();
+
+      Task.Run(() => PeriodicLogSaveAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
 
       InitializeLogs();
     }
 
     private void InitializeLogs()
     {
-      foreach (string baseFolder in _BASEFOLDERS)
+      if (Directory.Exists(_FOLDERDATABASE))
       {
-        foreach (string logFileName in _LOGFILENAMES)
+        try
         {
-
-          string logFilePath = Path.Combine(baseFolder, logFileName);
-
-          string logDirectory = Path.GetDirectoryName(logFilePath);
-          if (!Directory.Exists(logDirectory))
+          if (File.Exists(_PATHDATABASE))
           {
-            try
+            using (StreamReader sr = new StreamReader(_PATHDATABASE))
             {
-              Directory.CreateDirectory(logDirectory);
-            }
-            catch (Exception ex)
-            {
-              ExceptionHelper.ExceptionDetails(ex);
+              var jsonLogs = sr.ReadToEnd();
+
+              _databaseLogs = JsonConvert.DeserializeObject<EventLog>(jsonLogs, new JsonSerializerSettings
+              {
+                TypeNameHandling = TypeNameHandling.Objects,
+                Converters = { new CustomLogConverter() }
+              });
             }
           }
-          if (!File.Exists(logFilePath))
+          else
           {
-            try
-            {
-              File.Create(logFilePath).Close();
-            }
-            catch (Exception ex)
-            {
-              ExceptionHelper.ExceptionDetails(ex);
-            }
+            _databaseLogs = new ConnectionLog("DATABASE", "Logger Created Database Logs");
           }
         }
+        catch (Exception ex)
+        {
+          Console.WriteLine("Failed to log user logs");
+          ExceptionHelper.ExceptionDetails(ex);
+        }
       }
-    }
+      if (Directory.Exists(_FOLDERUSER))
+      {
+        try
+        {
+          Directory.CreateDirectory(_FOLDERUSER);
+          if (File.Exists(_PATHUSER))
+          {
+            using (StreamReader sr = new StreamReader(_PATHUSER))
+            {
+              var jsonLogs = sr.ReadToEnd();
+              _userLogs = JsonConvert.DeserializeObject<UserLogs>(jsonLogs, new JsonSerializerSettings
+              {
+                TypeNameHandling = TypeNameHandling.Objects,
+                Converters = { new CustomLogConverter() }
+              });
+            }
+          }
+          else
+          {
+            _userLogs = new UserLogs();
+          }
+        }
+        catch (Exception ex)
+        {
+          ExceptionHelper.ExceptionDetails(ex);
+        }
+      }
+      else
+      {
+        Directory.CreateDirectory(_FOLDERUSER);
+        File.CreateText(_PATHUSER).Close();
+        _userLogs = new UserLogs();
+        _databaseLogs = new ConnectionLog("DATABASE", "Database created its first log");
+        Thread.Sleep(10);
+      }
 
-    public void LogEvent(string username, string message, EventCategory category, Exception ex = null)
-    {
-      Log(username, message, category, ex);
     }
-    public void LogEvent(EventLog logEvent)
-    {
-      Log(logEvent.Username, logEvent.Message, logEvent.EventCategory, logEvent.Ex);
-    }
-    private void Log(string username, string message, EventCategory category, Exception ex = null)
+    public void Log(EventLog log)
     {
       try
       {
-        string logMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{category}] - {message}";
-        if (ex != null)
+        if (_userLogs == null)
         {
-          logMessage += Environment.NewLine + ex.ToString();
+          _userLogs = new UserLogs();
         }
-        File.AppendAllText(_PATH, logMessage + Environment.NewLine);
+        _userLogs.AddUserLog(log.Username, log);
+        WriteUserLogsToFile();
       }
       catch (Exception exception)
       {
         Console.WriteLine("Failed to log message...");
         ExceptionHelper.ExceptionDetails(exception);
+        Console.ReadKey();
 
       }
     }
@@ -96,8 +133,8 @@ namespace GroupProject.BankDatabase.EventLogs
     {
       try
       {
-        string pathUserLogs = Path.Combine(_BASEFOLDERS[0], _LOGFILENAMES[0]);
-        using (StreamReader sr = new(pathUserLogs))
+
+        using (StreamReader sr = new(_PATHUSER))
         {
           var jsonLogs = sr.ReadToEnd();
           List<EventLog>? userLogs = JsonConvert.DeserializeObject<List<EventLog>>(jsonLogs, new JsonSerializerSettings
@@ -127,52 +164,36 @@ namespace GroupProject.BankDatabase.EventLogs
       }
     }
 
+    private void WriteUserLogsToFile()
+    {
+      var jsonSettings = new JsonSerializerSettings
+      {
+        TypeNameHandling = TypeNameHandling.Objects,
+        Converters = { new CustomLogConverter() }
+      };
+      var updatedLogsJson = JsonConvert.SerializeObject(_userLogs, Formatting.Indented, jsonSettings);
+
+      File.WriteAllText(_PATHUSER, updatedLogsJson);
+    }
+
+
+    private async Task PeriodicLogSaveAsync(CancellationToken cancellationToken)
+    {
+      while (!cancellationToken.IsCancellationRequested)
+      {
+        await Task.Delay(_saveInterval, cancellationToken);
+
+        // Save logs to the file periodically
+        WriteUserLogsToFile();
+      }
+    }
+    public void Dispose()
+    {
+      // Stop the background task when the logger is disposed
+      _cancellationTokenSource.Cancel();
+      _cancellationTokenSource.Dispose();
+    }
+
+
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//public void LogAttemptedEvent(string attemptededEvent, string message)
-//{
-//  Log($"{attemptededEvent.ToUpper()} ATTEMPT", message);
-//}
-//public void LogFailedEvent(string failedEvent, string message)
-//{
-//  Log($"{failedEvent.ToUpper()} - FAILED", message);
-//}
-//public void LogSuccessfulEvent(string successefulEvent, string message)
-//{
-//  Log($"{successefulEvent.ToUpper()} - SUCCESSFUL", message);
-//}
-//public void LogTransferEvent(string transferEvent, string message)
-//{
-//  Log($"{transferEvent.ToUpper()} ATTEMPT", message);
-//}
-//public void LogInfo(string message)
-//{
-//  Log("INFO", message);
-//}
-//public void LogWarning(string message)
-//{
-//  Log("WARNING", message);
-//}
-//public void LogError(string message, Exception ex = null)
-//{
-//  Log("ERROR", message, ex);
-//}
+}

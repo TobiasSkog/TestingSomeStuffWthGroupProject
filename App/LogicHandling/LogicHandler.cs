@@ -1,4 +1,5 @@
-﻿using GroupProject.App.BankManagement.Account.BankAccounts;
+﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
@@ -14,7 +15,8 @@ namespace GroupProject.App.LogicHandling
     private UserChoice _choice { get; set; }
     private UserChoice _previousChoice { get; set; }
     private UserStatuses _status { get; set; }
-    private UserTypes _userType { get; set; }
+    private UserType _userType { get; set; }
+    private List<AccountBase> _userAccounts { get; set; }
     private UserBase? _user { get; set; }
     private Logger _log { get; set; }
     private Database _DB { get; set; }
@@ -25,7 +27,8 @@ namespace GroupProject.App.LogicHandling
       _choice = UserChoice.NoChoiceReceived;
       _previousChoice = UserChoice.NoChoiceReceived;
       _status = UserStatuses.UserDoesNotExist;
-      _userType = UserTypes.NoUser;
+      _userType = UserType.NoUser;
+      _userAccounts = new List<AccountBase>();
     }
     public UserChoice GetUserChoice()
     {
@@ -33,7 +36,10 @@ namespace GroupProject.App.LogicHandling
       TransactionLog transactionLog;
       ConnectionLog connectionLog;
       AccountCreationLog creationLog;
-
+      UserCustomer userCustomer;
+      UserAdmin userAdmin;
+      bool haveAccounts = false;
+      bool createNewAccount = false;
       while (true)
       {
 
@@ -70,30 +76,29 @@ namespace GroupProject.App.LogicHandling
             break;
 
           case UserChoice.CustomerMenu:
-            _choice = ConsoleIO.CustomerMenu();
+            _choice = ConsoleIO.CustomerMenu(_user);
             break;
 
           case UserChoice.AdminMenu:
-            _choice = ConsoleIO.AdminMenu();
+            _choice = ConsoleIO.AdminMenu(_user);
             break;
 
           case UserChoice.CreateBankAccount:
             _previousChoice = UserChoice.CustomerMenu;
 
-            _choice = ConsoleIO.CustomerCreateAccount();
+            _choice = ConsoleIO.CustomerCreateAccount(_user);
             break;
 
           case UserChoice.CreateCheckingsAccount:
-            _previousChoice = UserChoice.CustomerMenu;
 
             if (_user != null)
             {
-              CheckingsAccount newChecking = AccountManager.CreateCheckingsAccount();
+              CheckingsAccount newChecking = AccountManager.CreateCheckingsAccount(_user);
               _DB.AddNewAccountToUser(_user, newChecking);
-              _choice = ConsoleIO.CustomerMenu();
+              _choice = _previousChoice;
               break;
             }
-            _choice = ConsoleIO.CustomerMenu();
+            _choice = ConsoleIO.CustomerMenu(_user);
             break;
 
           case UserChoice.CreateSavingsAccount:
@@ -101,9 +106,9 @@ namespace GroupProject.App.LogicHandling
 
             if (_user != null)
             {
-              SavingsAccount newSaving = AccountManager.CreateSavingsAccount();
+              SavingsAccount newSaving = AccountManager.CreateSavingsAccount(_user);
               _user.AddAccount(newSaving);
-              _choice = ConsoleIO.CustomerMenu();
+              _choice = ConsoleIO.CustomerMenu(_user);
               break;
             }
             _choice = UserChoice.Back;
@@ -113,28 +118,47 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.CreateUserAccount:
             _previousChoice = UserChoice.WelcomeScreen;
 
-            if (_userType != UserTypes.Admin)
+            if (_userType != UserType.Admin)
             {
               _choice = UserChoice.CreateCustomerAccount;
               break;
             }
-            _choice = ConsoleIO.WhatKindOfAccountMenu();
+            _choice = ConsoleIO.WhatKindOfAccountMenu(_user);
 
             break;
 
           case UserChoice.CreateCustomerAccount:
             _previousChoice = UserChoice.CustomerMenu;
+            if (_userType != UserType.Admin)
+            {
+              userCustomer = AccountManager.CreateUserCustomerAccount(_DB);
+              _user = userCustomer;
+              creationLog = new AccountCreationLog(_user.Username, "Created a customer account");
+              connectionLog = new ConnectionLog(_user.Username, "logged in to the bank application.");
+              _log.Log(creationLog);
+              _user.AddToLog(creationLog);
+              _log.Log(connectionLog);
+              _user.AddToLog(connectionLog);
+              _DB.AddNewUserToDatabase(userCustomer);
+              _choice = UserChoice.Back;
+              break;
+            }
 
-            UserCustomer userCustomer = AccountManager.CreateUserCustomerAccount(_DB);
-            _DB.AddNewUserToDatabase(userCustomer);
-            _choice = UserChoice.Back;
+            userCustomer = AccountManager.CreateUserCustomerAccount(_DB);
+            creationLog = new AccountCreationLog(userCustomer.Username, "Created a customer account");
+            _log.Log(creationLog);
+            userCustomer.AddToLog(creationLog);
             break;
+
 
           case UserChoice.CreateAdminAccount:
             _previousChoice = UserChoice.AdminMenu;
-            if (_userType == UserTypes.Admin)
+            if (_userType == UserType.Admin)
             {
-              UserAdmin userAdmin = AccountManager.CreateUserAdminAccount(_DB);
+              userAdmin = AccountManager.CreateUserAdminAccount(_DB);
+              creationLog = new AccountCreationLog(userAdmin.Username, "Created a customer account");
+              _log.Log(creationLog);
+              userAdmin.AddToLog(creationLog);
               _DB.AddNewUserToDatabase(userAdmin);
               _choice = UserChoice.Back;
             }
@@ -143,17 +167,17 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.ListAllAccounts:
             _previousChoice = UserChoice.CustomerMenu;
 
-            bool haveAccounts = _user.CheckIfUserHaveAnyAccounts();
+            haveAccounts = _user.CheckIfUserHaveAnyAccounts();
 
             if (haveAccounts)
             {
               _choice = ConsoleIO.CustomerAccountList(_user);
               break;
             }
-            bool createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
+            createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
             if (createNewAccount)
             {
-              _choice = ConsoleIO.CustomerCreateAccount();
+              _choice = ConsoleIO.CustomerCreateAccount(_user);
               break;
             }
             _choice = _previousChoice;
@@ -163,23 +187,36 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.UpdateCurrencyExchange:// NOT IMPLEMENTED
             _previousChoice = UserChoice.AdminMenu;
 
-            if (_userType == UserTypes.Admin)
+            if (_userType == UserType.Admin)
             {
-              _choice = ConsoleIO.AdminCurrencyExchangeMenu();
+              _choice = ConsoleIO.AdminCurrencyExchangeMenu(_user);
               break;
             }
 
             _choice = UserChoice.Back;
             break;
 
-          case UserChoice.MakeDeposit:// NOT IMPLEMENTED
+          case UserChoice.MakeDeposit:// NOT FULLY IMPLEMENTED
             _previousChoice = UserChoice.CustomerMenu;
 
-            //transactionLog = METHOD TO RETRIEVE A TRANSACTION HERE
-            //_log.LogEvent(transactionLog);
-            //_user.AddToLog(transactionLog);
+            haveAccounts = _user.CheckIfUserHaveAnyAccounts();
 
-            _choice = _user.MakeDeposit();
+            if (haveAccounts)
+            {
+              var depositResponse = _user.MakeDeposit();
+              _choice = depositResponse.Choice;
+              _DB.ScheduleTransaction(depositResponse.Transaction);
+              _log.Log(depositResponse.Log);
+              break;
+            }
+            createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
+            if (createNewAccount)
+            {
+              _previousChoice = UserChoice.MakeDeposit;
+              _choice = ConsoleIO.CustomerCreateAccount(_user);
+              break;
+            }
+            _choice = _previousChoice;
             break;
 
           case UserChoice.MakeWithdrawal:// NOT IMPLEMENTED
@@ -189,7 +226,10 @@ namespace GroupProject.App.LogicHandling
             //_log.LogEvent(transactionLog);
             //_user.AddToLog(transactionLog);
 
-            _choice = _user.MakeWithdrawal();
+            var withdrawalResponse = _user.MakeWithdrawal();
+
+            _choice = withdrawalResponse.Choice;
+            _log.Log(withdrawalResponse.Log);
             break;
 
           case UserChoice.LoanMoney:// NOT IMPLEMENTED
@@ -199,7 +239,9 @@ namespace GroupProject.App.LogicHandling
             //_log.LogEvent(transactionLog);
             //_user.AddToLog(transactionLog);
 
-            _choice = _user.LoanMoney();
+            var loadResponse = _user.LoanMoney();
+            _choice = loadResponse.Choice;
+            _log.Log(loadResponse.Log);
             break;
 
           case UserChoice.ShowLog:
@@ -214,8 +256,8 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.Logout:
             _previousChoice = UserChoice.WelcomeScreen;
 
-            connectionLog = new(_user.Username, "logged out from the bank.");
-            _log.LogEvent(connectionLog);
+            connectionLog = new(_user.Username, "logged out from the bank application.");
+            _log.Log(connectionLog);
             _user.AddToLog(connectionLog);
 
             _choice = ConsoleIO.WelcomeMenu();
@@ -224,9 +266,9 @@ namespace GroupProject.App.LogicHandling
           case UserChoice.Exit:
             _previousChoice = UserChoice.WelcomeScreen;
 
-            connectionLog = new(_user.Username, "logged out from the bank.");
-            _log.LogEvent(connectionLog);
-            _user.AddToLog(connectionLog);
+            connectionLog = new("User", "Closed the bank application.");
+            _log.Log(connectionLog);
+            _log.Dispose();
 
             return UserChoice.Exit;
 
@@ -246,34 +288,34 @@ namespace GroupProject.App.LogicHandling
       switch (status)
       {
         case UserStatuses.Success:
-          connectionLog = new ConnectionLog(_user.Username, "logged in to the bank.");
-          _log.LogEvent(connectionLog);
+          connectionLog = new ConnectionLog(_user.Username, "logged in to the bank application.");
+          _log.Log(connectionLog);
           _user.AddToLog(connectionLog);
 
-          if (_userType == UserTypes.Admin)
+          if (_userType == UserType.Admin)
           {
-            return ConsoleIO.AdminMenu();
+            return ConsoleIO.AdminMenu(_user);
           }
           else
           {
-            return ConsoleIO.CustomerMenu();
+            return ConsoleIO.CustomerMenu(_user);
           }
 
         case UserStatuses.FailedLogin:
           if (_user != null)
           {
             connectionLog = new ConnectionLog(_user.Username, $"failed login attempt. {_user.RemainingAttempts} attempts remaining.");
-            _log.LogEvent(connectionLog);
+            _log.Log(connectionLog);
             _user.AddToLog(connectionLog);
             return ConsoleIO.WrongLogin($"\nFailed to login! {_user.RemainingAttempts} attempts remaining.");
           }
           connectionLog = new ConnectionLog("Unkown User", "failed login attempt.");
-          _log.LogEvent(connectionLog);
+          _log.Log(connectionLog);
           return _choice = ConsoleIO.WrongLogin($"Failed to login, username not found.");
 
         case UserStatuses.Locked:
-          connectionLog = new ConnectionLog(_user.Username, "3x failed login attempts, account locked.");
-          _log.LogEvent(connectionLog);
+          connectionLog = new ConnectionLog(_user.Username, "3x failed login attempts, account is locked.");
+          _log.Log(connectionLog);
           _user.AddToLog(connectionLog);
           ConsoleIO.WriteLockedMenu();
           return UserChoice.WelcomeScreen;

@@ -22,7 +22,7 @@ namespace GroupProject.App.LogicHandling
       while (true)
       {
         username = ConsoleIO.CreateUsername("Enter a username: ");
-        if (DB.UserNameExists(username))
+        if (!DB.UserNameExists(username))
         {
           break;
         }
@@ -33,7 +33,7 @@ namespace GroupProject.App.LogicHandling
       string socialSecurityNumber = ConsoleIO.GetUserInformation("Enter your social security number: ");
       DateTime dateOfBirth = DateTimeValidationHelper.GetExactDateTimeAgeRestriction("Enter your date of birth ", "yyyy/MM/dd", 18);
 
-      return new UserCustomer(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, UserTypes.Customer);
+      return new UserCustomer(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, UserType.Customer);
     }
     public static UserAdmin CreateUserAdminAccount(Database DB)
     {
@@ -55,12 +55,13 @@ namespace GroupProject.App.LogicHandling
       string password = ConsoleIO.Password("Enter a password: ");
       string socialSecurityNumber = ConsoleIO.GetUserInformation("Enter your social security number: ");
       DateTime dateOfBirth = DateTimeValidationHelper.GetExactDateTimeAgeRestriction("Enter your date of birth ", "yyyy/MM/dd", 18);
-      return new UserAdmin(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, UserTypes.Admin);
+
+      return new UserAdmin(firstName, lastName, username, password, socialSecurityNumber, dateOfBirth, UserType.Admin);
     }
 
-    public static CheckingsAccount CreateCheckingsAccount()
+    public static CheckingsAccount CreateCheckingsAccount(UserBase user)
     {
-      CurrencyTypes curencyType = ConsoleIO.GetCurrencyTypeFromList();
+      CurrencyTypes curencyType = ConsoleIO.GetCurrencyTypeFromList(user);
       CheckingsAccount newChecking = new(AccountStatuses.Active, AccountTypes.Checking, 0, curencyType);
 
       return newChecking;
@@ -70,11 +71,11 @@ namespace GroupProject.App.LogicHandling
     /// Need to add a check for the rent recieved when making a savings account and a prompt if the user want to add or not etc...
     /// </summary>
     /// <returns></returns>
-    public static SavingsAccount CreateSavingsAccount()
+    public static SavingsAccount CreateSavingsAccount(UserBase user)
     {
       Console.WriteLine("RENT IF YOU ADD X CASH DHORRA OVER Y YEARS");
       Thread.Sleep(599);
-      CurrencyTypes currencyType = ConsoleIO.GetCurrencyTypeFromList();
+      CurrencyTypes currencyType = ConsoleIO.GetCurrencyTypeFromList(user);
       SavingsAccount newSavings = new(AccountStatuses.Active, AccountTypes.Saving, 0, currencyType);
 
       return newSavings;

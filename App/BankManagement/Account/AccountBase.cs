@@ -1,13 +1,16 @@
 ﻿using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
 using GroupProject.App.BankManagement.Interfaces;
 using GroupProject.App.BankManagement.User;
+using GroupProject.App.BankManagement.User.Customer;
+using GroupProject.BankDatabase.JsonConverters;
 using Newtonsoft.Json;
 using ValidationUtility;
 
 namespace GroupProject.App.BankManagement.Account
 {
+  [JsonConverter(typeof(CustomAccountConverter))]
   [JsonObject(MemberSerialization.OptIn)]
-  public abstract class AccountBase : ITransaction
+  public abstract class AccountBase
   {
     [JsonProperty]
     public virtual AccountStatuses AccountStatus { get; protected set; }
@@ -20,7 +23,7 @@ namespace GroupProject.App.BankManagement.Account
     [JsonProperty]
     public virtual CurrencyTypes CurrencyType { get; protected set; }
     [JsonProperty]
-    protected virtual decimal Balance { get; set; }
+    internal virtual decimal Balance { get; set; }
 
     public AccountBase()
     {
@@ -66,7 +69,7 @@ namespace GroupProject.App.BankManagement.Account
       }
       return -1;
     }
-    public AccountBase GetAccount(string accountNumber, UserBase user)
+    public AccountBase GetAccounts(string accountNumber, UserBase user)
     {
       if (user.AccountIds.Contains(accountNumber) && AccountNumber == accountNumber)
       {
@@ -78,7 +81,7 @@ namespace GroupProject.App.BankManagement.Account
     {
 
     }
-    public TransactionStatus DisplayRentFromDeposit(Transaction transaction)
+    public TransactionStatus DisplayRentFromDeposit(AccountTransaction transaction)
     {
       return TransactionStatus.Success;
     }
@@ -87,13 +90,9 @@ namespace GroupProject.App.BankManagement.Account
 
     ///////////////////////////////////////////////////////////////
 
-    public virtual void DepositMoney(decimal depositAmount)
+    public virtual AccountTransaction DepositMoney(UserBase user, decimal depositAmount)
     {
-      if (depositAmount < 0)
-      {
-        throw new ArgumentException("You cannot deposit a negative amount.");
-      }
-      // Create a transaction to be handled at the correct timepoint
+      return new AccountTransaction(user, user, depositAmount, CurrencyType, this, this, AccountStatus, TransactionType.Deposit);
     }
 
 
@@ -125,28 +124,28 @@ namespace GroupProject.App.BankManagement.Account
     }
 
     ///////////////////////////////////////////////////////////////
-    public virtual TransactionStatus DepositMoney(Transaction transaction)
+    public virtual TransactionStatus DepositMoney(AccountTransaction transaction)
     {
-      if (transaction.Balance < 0)
+      if (transaction.Amount < 0)
       {
         return TransactionStatus.DepositIsANegativeValue;
       }
 
-      Balance += transaction.Balance;
+      Balance += transaction.Amount;
       return TransactionStatus.DepositSuccess;
     }
-    public virtual TransactionStatus WithdrawMoney(Transaction transaction)
+    public virtual TransactionStatus WithdrawMoney(AccountTransaction transaction)
     {
-      if (Balance < 0 || transaction.Balance > Balance)
+      if (Balance < 0 || transaction.Amount > Balance)
       {
         return TransactionStatus.BalanceTooLowForWithdrawal;
       }
-      Balance -= transaction.Balance;
+      Balance -= transaction.Amount;
       return TransactionStatus.WithdrawSuccess;
     }
-    public virtual TransactionStatus TransferMoney(Transaction transaction)
+    public virtual TransactionStatus TransferMoney(AccountTransaction transaction)
     {
-      if (Balance < 0 || transaction.Balance > Balance)
+      if (Balance < 0 || transaction.Amount > Balance)
       {
         return TransactionStatus.BalanceTooLowForTransfer;
       }
@@ -154,8 +153,8 @@ namespace GroupProject.App.BankManagement.Account
       {
         return TransactionStatus.DestinationAccountNotFound;
       }
-      Balance -= transaction.Balance;
-      transaction.TargetAccount.Balance += transaction.Balance;
+      Balance -= transaction.Amount;
+      transaction.TargetAccount.Balance += transaction.Amount;
       return TransactionStatus.TransferSuccess;
     }
   }

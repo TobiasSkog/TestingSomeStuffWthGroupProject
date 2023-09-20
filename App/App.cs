@@ -17,20 +17,6 @@ namespace GroupProject.App
     public static void Run()
     {
       AnsiConsole.Background = Color.Black;
-
-      /*    Aldor login:
-       * Username: aldorAdmin
-       * Password: password
-       * Username: userAldor
-       * Password: password
-       */
-
-      /*    Reidar login:
-       * Username: adminReidar
-       * Password: password
-       * Username: userReidar
-       * Password: password
-      */
       Logger logger = new();
       Database DB = new(logger);
       LogicHandler LH = new(DB, logger);

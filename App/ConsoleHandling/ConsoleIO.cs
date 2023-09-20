@@ -1,4 +1,5 @@
 ﻿using GroupProject.App.BankManagement.Account;
+using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.LogicHandling;
 using GroupProject.BankDatabase;
@@ -281,6 +282,33 @@ namespace GroupProject.App.ConsoleHandling
       return output;
 
     }
+
+
+    public static decimal AmountOfMoney(string prompt, decimal maxAllowed = decimal.MaxValue)
+    {
+
+      decimal input = AnsiConsole.Prompt(
+        new TextPrompt<decimal>($"[{userPromptColor}]{prompt}: [/]")
+        .PromptStyle(userChoiceColor)
+        .ValidationErrorMessage("")
+        .Validate(userInput =>
+        {
+          if (userInput <= 0)
+          {
+            return ValidationResult.Error("The amount cannot be a negative value");
+          }
+          else if (userInput > maxAllowed)
+          {
+            return ValidationResult.Error("The amount cannot be greater than your current account balance");
+          }
+          else
+          {
+            return ValidationResult.Success();
+          }
+        }));
+
+      return input;
+    }
     public static UserChoice WelcomeMenu(string prompt = "")
     {
       AnsiConsole.Clear();
@@ -307,10 +335,10 @@ namespace GroupProject.App.ConsoleHandling
       //AnsiConsole.Clear();
       //return enumChoice;
     }
-    public static UserChoice AdminMenu()
+    public static UserChoice AdminMenu(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDividerAdmin("Admin Menu | Eudgrade Online Banking");
+      WriteDividerAdmin($"{user.FirstName + " " + user.LastName} Admin Menu | Eudgrade Online Banking");
       var choice = AnsiConsole.Prompt(
       new SelectionPrompt<string>()
           .Title($"[{adminPromptColor}]What would you like to do?[/]")
@@ -329,10 +357,10 @@ namespace GroupProject.App.ConsoleHandling
     }
 
 
-    public static UserChoice AdminAddAccountMenu()
+    public static UserChoice AdminAddAccountMenu(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDividerAdmin("Account Creation Menu | Eudgrade Online Banking");
+      WriteDividerAdmin($"{user.FirstName + " " + user.LastName} Admin Account Creation Menu | Eudgrade Online Banking");
 
       string choice = AnsiConsole.Prompt(
           new SelectionPrompt<string>()
@@ -348,10 +376,10 @@ namespace GroupProject.App.ConsoleHandling
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static UserChoice AdminCurrencyExchangeMenu()
+    public static UserChoice AdminCurrencyExchangeMenu(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDividerAdmin("Currency Exchange Update | Eudgrade Online Banking");
+      WriteDividerAdmin($"{user.FirstName + " " + user.LastName} Admin Currency Exchange Update | Eudgrade Online Banking");
 
       string choice = AnsiConsole.Prompt(
           new SelectionPrompt<string>()
@@ -367,10 +395,10 @@ namespace GroupProject.App.ConsoleHandling
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static UserChoice AdminCreateUserAccount()
+    public static UserChoice AdminCreateUserAccount(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDividerAdmin("User Account Creation Menu | Eudgrade Online Banking");
+      WriteDividerAdmin($"{user.FirstName + " " + user.LastName} Admin - User Account Creation Menu | Eudgrade Online Banking");
 
       var choice = AnsiConsole.Prompt(
           new SelectionPrompt<string>()
@@ -387,10 +415,10 @@ namespace GroupProject.App.ConsoleHandling
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static UserChoice CustomerMenu()
+    public static UserChoice CustomerMenu(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDivider("User Menu | Eudgrade Online Banking");
+      WriteDivider($"{user.FirstName + " " + user.LastName} User Menu | Eudgrade Online Banking");
 
       var choice = AnsiConsole.Prompt(
           new SelectionPrompt<string>()
@@ -412,13 +440,10 @@ namespace GroupProject.App.ConsoleHandling
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static UserChoice WhatKindOfAccountMenu()
+    public static UserChoice WhatKindOfAccountMenu(UserBase user)
     {
-      //;
-      //ConsoleIO.CustomerCreateUserAccount();
-
       AnsiConsole.Clear();
-      WriteDividerAdmin("User Account Creation Menu | Eudgrade Online Banking");
+      WriteDividerAdmin($"{user.FirstName + " " + user.LastName} Admin - User Account Creation Menu | Eudgrade Online Banking");
 
       var choice = AnsiConsole.Prompt(
           new SelectionPrompt<string>()
@@ -437,23 +462,10 @@ namespace GroupProject.App.ConsoleHandling
       return ChoiceEscapeMarkup(choice);
     }
 
-    public static CurrencyTypes GetCurrencyTypeFromList()
+    public static CurrencyTypes GetCurrencyTypeFromList(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDivider("User Account Creation | Eudgrade Online Banking");
-
-      //var prompt = new SelectionPrompt<CurrencyTypes>()
-      //   .Title($"[{userPromptColor}]What currency type would you like to have?[/]")
-      //   .PageSize(10)
-      //   .HighlightStyle(userHighlightColor);
-
-      //foreach (CurrencyTypes value in Enum.GetValues(typeof(CurrencyTypes)))
-      //{
-      //  // prompt.AddChoice($"[{userPromptColor}]{value}[/]");
-      //  prompt.AddChoice(value);
-      //}
-
-      //CurrencyTypes choice = AnsiConsole.Prompt(prompt);
+      WriteDivider($"{user.FirstName + " " + user.LastName} User Account Creation | Eudgrade Online Banking");
 
       var prompt = new SelectionPrompt<string>()
     .Title($"[{userPromptColor}]What currency type would you like to have?[/]")
@@ -470,10 +482,10 @@ namespace GroupProject.App.ConsoleHandling
 
       return CurrencyEscapeMarkup(choice);
     }
-    public static UserChoice CustomerCreateAccount()
+    public static UserChoice CustomerCreateAccount(UserBase user)
     {
       AnsiConsole.Clear();
-      WriteDivider("User Bank Account Creation | Eudgrade Online Banking");
+      WriteDivider($"{user.FirstName + " " + user.LastName} User Bank Account Creation | Eudgrade Online Banking");
 
       var choice = AnsiConsole.Prompt(
           new SelectionPrompt<string>()
@@ -489,12 +501,13 @@ namespace GroupProject.App.ConsoleHandling
 
       return ChoiceEscapeMarkup(choice);
     }
-    public static UserChoice CreateSavingsAccount()
+    public static UserChoice CreateSavingsAccount(UserBase user)
     {
+
       Console.WriteLine("CreateSavingsAccount: 475");
       return default;
     }
-    public static UserChoice CreateCheckingsAccount()
+    public static UserChoice CreateCheckingsAccount(UserBase user)
     {
       Console.WriteLine("CreateCheckingsAccount: 480");
       return default;
@@ -544,6 +557,34 @@ namespace GroupProject.App.ConsoleHandling
       return ChoiceEscapeMarkup(choice);
     }
 
+    public static AccountBase GetSpecificAccount(UserBase user)
+    {
+      AnsiConsole.Clear();
+      WriteDivider($"{user.FirstName + " " + user.LastName} Deposit | Eudgrade Online Banking");
+      List<AccountBase> userAccounts = Database.LoadUserAccounts(user.AccountIds);
+
+      var prompt = new SelectionPrompt<string>()
+        .Title($"[{userPromptColor}]Wich account would you like to make a deposit to?[/]")
+        .PageSize(10)
+        .HighlightStyle("gold3_1");
+      foreach (var account in userAccounts)
+      {
+        prompt.AddChoice($"[{userChoiceColor}]{account.AccountNumber} - {account.GetBalance()}{account.CurrencyType} - {account.AccountType}[/]");
+      }
+
+      prompt.AddChoice($"[{userChoiceColor}]Back[/]");
+
+      string choice = AnsiConsole.Prompt(prompt);
+
+      if (choice.Contains("Back"))
+      {
+        return null;
+      }
+
+      AccountBase selectedAccount = userAccounts.FirstOrDefault(account => choice.Contains(account.AccountNumber));
+
+      return selectedAccount;
+    }
     public static UserChoice CustomerLog(UserBase user)
     {
       AnsiConsole.Clear();
@@ -551,7 +592,7 @@ namespace GroupProject.App.ConsoleHandling
       Rule logDivider = new Rule().RuleStyle(userChoiceColor);
       WriteDivider($"{user.FirstName + " " + user.LastName} user logs | Eudgrade Online Banking");
 
-      var filteredLogs = user.UserLog;
+      var userLogs = user.UserLog.GetUserLogs(user.Username);
 
       var table = new Table()
           .Border(TableBorder.Double)
@@ -564,13 +605,16 @@ namespace GroupProject.App.ConsoleHandling
             new TableColumn($"[{userPromptColor}]Event Details[/]").Centered()
           );
 
-      foreach (var log in filteredLogs)
+      foreach (var log in userLogs)
       {
-        table.AddRow($"[{userPromptColor}{log.Timestamp}[/]", $"[{userPromptColor}]{log.EventCategory}[/]", $"[{userPromptColor}]{log.Message}[/]").LeftAligned();
+        table.AddRow($"[{userPromptColor}]{log.Timestamp}[/]", $"[{userPromptColor}]{log.EventCategory}[/]", $"[{userPromptColor}]{log.Message}[/]").LeftAligned();
         table.AddRow(logDivider, logDivider, logDivider);
       }
 
-      table.RemoveRow(filteredLogs.Count * 2 - 1);
+      if (userLogs.Count != 0)
+      {
+        table.RemoveRow(userLogs.Count * 2 - 1);
+      }
 
       AnsiConsole.Write(table);
 

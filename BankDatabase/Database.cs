@@ -1,73 +1,55 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.BankManagement.Account.BankAccounts;
+using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
+using GroupProject.App.LogicHandling;
 using GroupProject.BankDatabase.EventLogs;
 using GroupProject.BankDatabase.JsonConverters;
 using Newtonsoft.Json;
+using System.Transactions;
 using ValidationUtility;
 
 namespace GroupProject.BankDatabase
 {
   public class Database
   {
-    private readonly string _DATA;
-    private readonly string _FOLDER;
-    private readonly string _PATH;
-    private Logger Logger { get; set; }
-    private static readonly string _PATHACC = "CustomFiles\\Database\\Accounts.json";
+    private readonly string _USERFILE = "Users.json";
+    private readonly string _ACCOUNTFILE = "Accounts.json";
+    private readonly string _BASEFOLDER = "CustomFiles\\Database";
+    private static string _PATHUSERS { get; set; }
+    private static string _PATHACCS { get; set; }
+    private Logger _Logger { get; set; }
     private List<UserBase> _users { get; set; }
     private List<AccountBase> _accounts { get; set; }
+    private TransactionScheduler _transactionScheduler { get; set; }
 
-    public Database(Logger logger, string data = "Users.json", string folder = "CustomFiles\\Database")
+    public Database(Logger logger, int transactionUpdateIntervall = 15)
     {
 
-      _DATA = data;
-      _FOLDER = folder;
-      _PATH = Path.Combine(_FOLDER, _DATA);
-      Logger = logger;
-      bool foundDatabase = File.Exists(_PATH);
-      bool foundAccounts = File.Exists(_PATHACC);
-      if (!Directory.Exists(_FOLDER))
-      {
-        try
-        {
-          Directory.CreateDirectory(_FOLDER);
-        }
-        catch (Exception ex)
-        {
-          ExceptionHelper.ExceptionDetails(ex);
-        }
-      }
-      if (!foundDatabase)
-      {
-        try
-        {
-          _users = InitializeDatabaseWithDefaultData();
+      _Logger = logger;
+      _transactionScheduler = new TransactionScheduler(transactionUpdateIntervall, _Logger, this); // CHANGE FROMSECNODS TO FROMMINUTES
+      _PATHUSERS = Path.Combine(_BASEFOLDER, _USERFILE);
+      _PATHACCS = Path.Combine(_BASEFOLDER, _ACCOUNTFILE);
 
-        }
-        catch (Exception ex)
-        {
-          ExceptionHelper.ExceptionDetails(ex);
-        }
-      }
-      if (!foundAccounts)
+
+
+      bool foundUserDatabase = File.Exists(_PATHUSERS);
+      bool foundAccountDatabase = File.Exists(_PATHACCS);
+
+      CreateBaseFolderIfNotExisting();
+
+      if (!foundUserDatabase)
       {
-        try
-        {
-          _accounts = InitializeDatabaseWithDefaultAccounts();
-        }
-        catch (Exception ex)
-        {
-          ExceptionHelper.ExceptionDetails(ex);
-          Console.ReadKey();
-        }
+        _users = InitializeDatabaseWithDefaultData();
+        SaveData(true, false);
       }
-      if (!foundDatabase || !foundAccounts)
+      if (!foundAccountDatabase)
       {
-        SaveData(!foundDatabase, !foundAccounts);
+        _accounts = InitializeDatabaseWithDefaultAccounts();
+        SaveData(false, true);
       }
       else
       {
@@ -76,6 +58,22 @@ namespace GroupProject.BankDatabase
 
       ConsoleIO.StartUp();
     }
+
+    private void CreateBaseFolderIfNotExisting()
+    {
+      if (!Directory.Exists(_BASEFOLDER))
+      {
+        try
+        {
+          Directory.CreateDirectory(_BASEFOLDER);
+        }
+        catch (Exception ex)
+        {
+          ExceptionHelper.ExceptionDetails(ex);
+        }
+      }
+    }
+
     internal void AddUser(UserBase user)
     {
       _users.Add(user);
@@ -90,6 +88,10 @@ namespace GroupProject.BankDatabase
       SaveData();
     }
 
+    internal void ScheduleTransaction(AccountTransaction transaction)
+    {
+      _transactionScheduler.QueueTransaction(transaction);
+    }
     internal void AddNewUserToDatabase(UserBase user)
     {
       _users.Add(user);
@@ -123,7 +125,7 @@ namespace GroupProject.BankDatabase
           bool exists = _users.Any(user => user.Username == username);
           return exists;
         }
-        return false;
+        return true;
       }
       catch (Exception ex)
       {
@@ -137,27 +139,27 @@ namespace GroupProject.BankDatabase
     {
       try
       {
-        using (StreamReader sr = new StreamReader(_PATH))
+        using (StreamReader asr = new StreamReader(_PATHUSERS))
         {
-          var jsonUsers = sr.ReadToEnd();
+          var jsonUsers = asr.ReadToEnd();
           List<UserBase>? users = JsonConvert.DeserializeObject<List<UserBase>>(jsonUsers, new JsonSerializerSettings
           {
             TypeNameHandling = TypeNameHandling.None,
             Converters = { new CustomUserConverter() }
           });
-
+          asr.Close();
           _users = users;
         }
 
-        using (StreamReader sr = new StreamReader(_PATHACC))
+        using (StreamReader bsr = new StreamReader(_PATHACCS))
         {
-          var jsonAccounts = sr.ReadToEnd();
+          var jsonAccounts = bsr.ReadToEnd();
           List<AccountBase>? accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
           {
             TypeNameHandling = TypeNameHandling.None,
             Converters = { new CustomAccountConverter() }
           });
-
+          bsr.Close();
           _accounts = accounts;
         }
       }
@@ -165,6 +167,7 @@ namespace GroupProject.BankDatabase
       {
         ExceptionHelper.ExceptionDetails(ex);
         _users = new List<UserBase>();
+        _accounts = new List<AccountBase>();
 
       }
     }
@@ -174,7 +177,7 @@ namespace GroupProject.BankDatabase
       try
       {
 
-        using (StreamReader sr = new StreamReader(_PATHACC))
+        using (StreamReader sr = new StreamReader(_PATHACCS))
         {
           var jsonAccounts = sr.ReadToEnd();
           List<AccountBase>? accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
@@ -209,19 +212,27 @@ namespace GroupProject.BankDatabase
       {
         if (saveDatabase)
         {
-          using (StreamWriter sw = File.CreateText(_PATH))
+
+          var jsonUserSettings = new JsonSerializerSettings
           {
-            JsonSerializer serializer = new JsonSerializer();
-            serializer.Serialize(sw, _users);
-          }
+            TypeNameHandling = TypeNameHandling.Objects,
+            Converters = { new CustomUserConverter() }
+          };
+          var updatedUsers = JsonConvert.SerializeObject(_users, Formatting.Indented, jsonUserSettings);
+
+          File.WriteAllText(_PATHUSERS, updatedUsers);
+
         }
         if (saveAccounts)
         {
-          using (StreamWriter sw = File.CreateText(_PATHACC))
+          var jsonAccountSettings = new JsonSerializerSettings
           {
-            JsonSerializer serializer = new JsonSerializer();
-            serializer.Serialize(sw, _accounts);
-          }
+            TypeNameHandling = TypeNameHandling.Objects,
+            Converters = { new CustomAccountConverter() }
+          };
+          var updatedAccounts = JsonConvert.SerializeObject(_accounts, Formatting.Indented, jsonAccountSettings);
+
+          File.WriteAllText(_PATHACCS, updatedAccounts);
         }
       }
       catch (Exception ex)
@@ -230,20 +241,39 @@ namespace GroupProject.BankDatabase
         Console.ReadKey();
       }
     }
+
+    internal void UpdateAccountDatabase(AccountBase account)
+    {
+      if (_accounts == null)
+      {
+        _accounts = new List<AccountBase>();
+      }
+      int existingAccountIndex = _accounts.FindIndex(a => a.AccountId == account.AccountId);
+      if (existingAccountIndex != -1)
+      {
+        _accounts[existingAccountIndex] = account;
+      }
+      else
+      {
+        _accounts.Add(account);
+      }
+
+      SaveData(false, true);
+    }
     private static List<UserBase> InitializeDatabaseWithDefaultData()
     {
       List<UserBase> createdUserList = new List<UserBase>()
       {
-        new UserAdmin(   "Tobias", "Skog"    , "adminTobias", "password", "912632161363", new DateTime(1991, 10, 28), UserTypes.Admin   ),
-        new UserAdmin(   "Aldor",  "Admin"   , "adminAldor" , "password", "126261236243", new DateTime(1980, 10, 21), UserTypes.Admin   ),
-        new UserAdmin(   "Reidar", "Admin"   , "adminReidar", "password", "643621611212", new DateTime(1980, 10, 21), UserTypes.Admin   ),
-        new UserCustomer("Aldor",  "User"    , "userAldor"  , "password", "112662362362", new DateTime(1970, 6, 1  ), UserTypes.Customer),
-        new UserCustomer("Reidar", "User"    , "userReidar" , "password", "643634644123", new DateTime(1996, 8, 1  ), UserTypes.Customer),
-        new UserCustomer("Dabba",  "Svensson", "userDabba"  , "password", "395315678456", new DateTime(2015, 1, 1  ), UserTypes.Customer),
-        new UserCustomer("Ebba",   "Svensson", "userEbba"   , "password", "345745678456", new DateTime(2016, 3, 30 ), UserTypes.Customer),
-        new UserCustomer("Fabba",  "Svensson", "userFabba"  , "password", "002461255321", new DateTime(2022, 4, 12 ), UserTypes.Customer),
-        new UserCustomer("Gabba",  "Svensson", "userGabba"  , "password", "886641486516", new DateTime(2015, 9, 22 ), UserTypes.Customer),
-        new UserCustomer("Habba",  "Svensson", "userHabba"  , "password", "888448484316", new DateTime(2018, 7, 26 ), UserTypes.Customer)
+        new UserAdmin(   "Tobias", "Skog"    , "adminTobias", "password", "912632161363", new DateTime(1991, 10, 28), UserType.Admin   ),
+        new UserAdmin(   "Aldor",  "Admin"   , "adminAldor" , "password", "126261236243", new DateTime(1980, 10, 21), UserType.Admin   ),
+        new UserAdmin(   "Reidar", "Admin"   , "adminReidar", "password", "643621611212", new DateTime(1980, 10, 21), UserType.Admin   ),
+        new UserCustomer("Aldor",  "User"    , "userAldor"  , "password", "112662362362", new DateTime(1970, 6, 1  ), UserType.Customer),
+        new UserCustomer("Reidar", "User"    , "userReidar" , "password", "643634644123", new DateTime(1996, 8, 1  ), UserType.Customer),
+        new UserCustomer("Dabba",  "Svensson", "userDabba"  , "password", "395315678456", new DateTime(1997, 1, 1  ), UserType.Customer),
+        new UserCustomer("Ebba",   "Svensson", "userEbba"   , "password", "345745678456", new DateTime(1998, 3, 30 ), UserType.Customer),
+        new UserCustomer("Fabba",  "Svensson", "userFabba"  , "password", "002461255321", new DateTime(1999, 4, 12 ), UserType.Customer),
+        new UserCustomer("Gabba",  "Svensson", "userGabba"  , "password", "886641486516", new DateTime(2000, 9, 22 ), UserType.Customer),
+        new UserCustomer("Habba",  "Svensson", "userHabba"  , "password", "888448484316", new DateTime(2001, 7, 26 ), UserType.Customer)
       };
 
       return createdUserList;
@@ -260,3 +290,4 @@ namespace GroupProject.BankDatabase
     }
 
   }
+}
