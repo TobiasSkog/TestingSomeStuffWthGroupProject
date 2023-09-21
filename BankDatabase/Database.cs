@@ -332,7 +332,7 @@ namespace GroupProject.BankDatabase
 
       List<UserBase> createdUserList = new List<UserBase>()
       {
-        new Bank("Bank", "Bank", "BanK", salt, hashedpw, 3, "1", "1", DateTime.MinValue, UserType.Bank, UserStatuses.Active, accountIds, logIds),
+        new Bank("Bank", "Bank", "Banken", salt, hashedpw, 3, "1", "1", DateTime.MinValue, UserType.Bank, UserStatuses.Active, accountIds, logIds),
         new UserAdmin(   "Tobias", "Skog"    , "adminTobias", "password", "912632161363", new DateTime(1991, 10, 28), UserType.Admin   ),
         new UserAdmin(   "Aldor",  "Admin"   , "adminAldor" , "password", "126261236243", new DateTime(1980, 10, 21), UserType.Admin   ),
         new UserAdmin(   "Reidar", "Admin"   , "adminReidar", "password", "643621611212", new DateTime(1980, 10, 21), UserType.Admin   ),
