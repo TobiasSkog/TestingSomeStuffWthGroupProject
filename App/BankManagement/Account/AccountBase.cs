@@ -94,33 +94,19 @@ namespace GroupProject.App.BankManagement.Account
     {
       return new AccountTransaction(user, user, depositAmount, CurrencyType, this, this, AccountStatus, TransactionType.Deposit);
     }
-
-
-
-    public virtual void WithdrawMoney(decimal withdrawAmount)
+    public virtual AccountTransaction WithdrawMoney(UserBase user, decimal withdrawAmount)
     {
-      if (Balance < 0 || withdrawAmount > Balance)
-      {
-        throw new ArgumentException("You cannot withdraw more than you have on your account.");
-      }
-
-      // Create a transaction to be handled at the correct timepoint
-
+      return new AccountTransaction(user, user, withdrawAmount, CurrencyType, this, this, AccountStatus, TransactionType.Withdraw);
+    }
+    public virtual AccountTransaction TransferMoney(UserBase user, UserBase targetUser, decimal transferAmount, AccountBase targetAccount)
+    {
+      return new AccountTransaction(user, targetUser, transferAmount, CurrencyType, this, targetAccount, AccountStatus, TransactionType.Transfer);
     }
 
-
-    public virtual void TransferMoney(decimal transferAmount, AccountBase targetAccount)
+    public virtual AccountTransaction TakeLoanFromBank(UserBase bank, UserBase user, decimal loanAmount)
     {
-      if (Balance < 0 || transferAmount > Balance)
-      {
-        throw new ArgumentException("You cannot transfer more than you have on your account.");
-      }
-      if (targetAccount.AccountStatus != AccountStatuses.Active)
-      {
-        throw new ArgumentException("Could not find the target account.");
-      }
-      // Create a transaction to be handled at the correct timepoint
-
+      throw new NotImplementedException();
+      //return new AccountTransaction(bank, user, loanAmount, , this)
     }
 
     ///////////////////////////////////////////////////////////////
@@ -145,16 +131,30 @@ namespace GroupProject.App.BankManagement.Account
     }
     public virtual TransactionStatus TransferMoney(AccountTransaction transaction)
     {
-      if (Balance < 0 || transaction.Amount > Balance)
-      {
-        return TransactionStatus.BalanceTooLowForTransfer;
-      }
-      if (transaction.SourceAccount.AccountId != null)
+
+      if (!transaction.TargetUser.AccountIds.Contains(transaction.TargetAccount.AccountId))
       {
         return TransactionStatus.DestinationAccountNotFound;
       }
+      if (transaction.Amount < 0)
+      {
+        return TransactionStatus.AmountIsANegativeValue;
+      }
+      if (Balance < transaction.Amount)
+      {
+        return TransactionStatus.BalanceTooLowForTransfer;
+      }
+
       Balance -= transaction.Amount;
-      transaction.TargetAccount.Balance += transaction.Amount;
+      return TransactionStatus.TransferSuccess;
+    }
+    public virtual TransactionStatus ReceiveTransferMoney(decimal amount)
+    {
+      if (amount < 0)
+      {
+        return TransactionStatus.AmountIsANegativeValue;
+      }
+      Balance += amount;
       return TransactionStatus.TransferSuccess;
     }
   }

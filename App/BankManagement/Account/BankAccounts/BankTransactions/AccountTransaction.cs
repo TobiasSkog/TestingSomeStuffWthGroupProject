@@ -21,7 +21,7 @@ namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
     public AccountTransaction(
         UserBase user,
         UserBase targetUser,
-        decimal balance,
+        decimal amount,
         CurrencyTypes currencyType,
         AccountBase sourceAccount,
         AccountBase targetAccount,
@@ -29,9 +29,9 @@ namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
         TransactionType transactionType,
         TransactionStatus transactionStatus = TransactionStatus.Pending)
     {
-      User = user ?? throw new ArgumentNullException(nameof(user));
+      User = user;
       TargetUser = targetUser;
-      Amount = balance;
+      Amount = amount;
       CurrencyType = currencyType;
       SourceAccount = sourceAccount;
       TargetAccount = targetAccount;
@@ -41,10 +41,9 @@ namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
     }
     private string GetTransactionMessageFromStatus(TransactionStatus transactionStatus)
     {
-      TransactionLog transactionLog;
       return transactionStatus switch
       {
-        TransactionStatus.Success => "Successfuly made a transaction",
+        TransactionStatus.Success => "Successful transaction",
         TransactionStatus.Denied => "Transaction attempt denied",
         TransactionStatus.Pending => "Transaction pending",
         TransactionStatus.Failed => "Transaction failed",
@@ -53,12 +52,13 @@ namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
         TransactionStatus.BalanceTooLowForWithdrawal => "Balance too low for withdrawal. Transaction failed",
         TransactionStatus.BalanceTooLowForTransfer => "Balance too low for transfer. Transaction failed",
         TransactionStatus.DepositIsANegativeValue => "Deposit is a negative value. Transaction failed",
-        TransactionStatus.WithdrawSuccess => "Successfuly made withdrawal",
-        TransactionStatus.DepositSuccess => "Successfuly made a deposit",
-        TransactionStatus.TransferSuccess => "Successfuly made a transfer",
+        TransactionStatus.WithdrawSuccess => "Successful withdrawal",
+        TransactionStatus.DepositSuccess => "Successful deposit",
+        TransactionStatus.TransferSuccess => "Successful transfer",
         TransactionStatus.WithdrawalLimit => "Withdrawal limit reached. Transaction failed",
-        TransactionStatus.LoanSuccess => "Successfuly made a loan",
-        _ => "Unkown Transaction Status"
+        TransactionStatus.LoanSuccess => "Successful loan",
+        TransactionStatus.AmountIsANegativeValue => "Tried to transfer a negative amount. Transaction failed",
+        _ => "Unknown Transaction Status"
 
       };
 
@@ -88,15 +88,13 @@ namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
         case TransactionType.Transfer:
           status = transaction.SourceAccount.TransferMoney(transaction);
           message = GetTransactionMessageFromStatus(status);
-          if (message.Contains("Transaction failed"))
+          if (status == TransactionStatus.TransferSuccess)
           {
-            break;
-          }
-          status = transaction.TargetAccount.TransferMoney(transaction);
-          message += GetTransactionMessageFromStatus(status);
-          if (message.Contains("Transaction failed"))
-          {
-            break;
+            status = transaction.TargetAccount.ReceiveTransferMoney(transaction.Amount);
+            if (status != TransactionStatus.TransferSuccess)
+            {
+              message = GetTransactionMessageFromStatus(status);
+            }
           }
           break;
 
@@ -110,7 +108,7 @@ namespace GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions
       }
 
       return new TransactionLog(
-          transaction.User.Username,
+            transaction.User.Username,
             message,
             transaction.Amount,
             transaction.SourceAccount.AccountNumber,

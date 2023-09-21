@@ -6,6 +6,7 @@ namespace GroupProject.App.BankManagement.User
   {
     NoUser,
     Customer,
-    Admin
+    Admin,
+    Bank
   }
 }

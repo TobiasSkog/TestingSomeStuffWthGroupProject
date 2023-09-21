@@ -20,26 +20,34 @@ namespace GroupProject.App.LogicHandling
     private UserBase? _user { get; set; }
     private Logger _log { get; set; }
     private Database _DB { get; set; }
-    public LogicHandler(Database DB, Logger log)
+    private TransactionScheduler _TS;
+
+
+    public LogicHandler(Database DB, Logger log, int transactionUpdateIntervall = 15)
     {
       _DB = DB;
       _log = log;
+      _TS = new TransactionScheduler(transactionUpdateIntervall, _log, _DB);
+      _TS.TransactionsProcessed += OnTransactionsProcessed;
       _choice = UserChoice.NoChoiceReceived;
       _previousChoice = UserChoice.NoChoiceReceived;
       _status = UserStatuses.UserDoesNotExist;
       _userType = UserType.NoUser;
       _userAccounts = new List<AccountBase>();
     }
+    private void OnTransactionsProcessed(object sender, EventArgs e)
+    {
+      _userAccounts = _DB.LoadUserAccounts(_user.AccountIds);
+    }
     public UserChoice GetUserChoice()
     {
       _choice = UserChoice.WelcomeScreen;
-      TransactionLog transactionLog;
       ConnectionLog connectionLog;
       AccountCreationLog creationLog;
       UserCustomer userCustomer;
       UserAdmin userAdmin;
-      bool haveAccounts = false;
-      bool createNewAccount = false;
+      bool haveAccounts;
+      bool createNewAccount;
       while (true)
       {
 
@@ -61,6 +69,7 @@ namespace GroupProject.App.LogicHandling
               if (_user != null)
               {
                 _userType = _user.UserType;
+
                 _status = _user.Login(username, password);
                 if (_user.RemainingAttempts >= 0)
                 {
@@ -77,6 +86,10 @@ namespace GroupProject.App.LogicHandling
 
           case UserChoice.CustomerMenu:
             _choice = ConsoleIO.CustomerMenu(_user);
+            if (_userAccounts.Count == 0)
+            {
+              _userAccounts = _DB.LoadUserAccounts(_user.AccountIds);
+            }
             break;
 
           case UserChoice.AdminMenu:
@@ -95,6 +108,8 @@ namespace GroupProject.App.LogicHandling
             {
               CheckingsAccount newChecking = AccountManager.CreateCheckingsAccount(_user);
               _DB.AddNewAccountToUser(_user, newChecking);
+              _DB.SaveData();
+              _userAccounts.Add(newChecking);
               _choice = _previousChoice;
               break;
             }
@@ -107,8 +122,10 @@ namespace GroupProject.App.LogicHandling
             if (_user != null)
             {
               SavingsAccount newSaving = AccountManager.CreateSavingsAccount(_user);
-              _user.AddAccount(newSaving);
-              _choice = ConsoleIO.CustomerMenu(_user);
+              _DB.AddNewAccountToUser(_user, newSaving);
+              _DB.SaveData();
+              _userAccounts.Add(newSaving);
+              _choice = _previousChoice;
               break;
             }
             _choice = UserChoice.Back;
@@ -171,7 +188,8 @@ namespace GroupProject.App.LogicHandling
 
             if (haveAccounts)
             {
-              _choice = ConsoleIO.CustomerAccountList(_user);
+              _choice = ConsoleIO.CustomerAccountList(_user, _userAccounts);
+
               break;
             }
             createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
@@ -203,9 +221,10 @@ namespace GroupProject.App.LogicHandling
 
             if (haveAccounts)
             {
-              var depositResponse = _user.MakeDeposit();
+              //List<AccountBase> userAccounts = _DB.LoadUserAccounts(_user.AccountIds);
+              var depositResponse = _user.MakeDeposit(_userAccounts);
               _choice = depositResponse.Choice;
-              _DB.ScheduleTransaction(depositResponse.Transaction);
+              _TS.QueueTransaction(depositResponse.Transaction);
               _log.Log(depositResponse.Log);
               break;
             }
@@ -219,34 +238,92 @@ namespace GroupProject.App.LogicHandling
             _choice = _previousChoice;
             break;
 
-          case UserChoice.MakeWithdrawal:// NOT IMPLEMENTED
+          case UserChoice.MakeWithdrawal:
             _previousChoice = UserChoice.CustomerMenu;
 
-            //transactionLog = METHOD TO RETRIEVE A TRANSACTION HERE
-            //_log.LogEvent(transactionLog);
-            //_user.AddToLog(transactionLog);
+            haveAccounts = _user.CheckIfUserHaveAnyAccounts();
 
-            var withdrawalResponse = _user.MakeWithdrawal();
+            if (haveAccounts)
+            {
+              // List<AccountBase> userAccounts = _DB.LoadUserAccounts(_user.AccountIds);
+              var withdrawalResponse = _user.MakeWithdrawal(_userAccounts);
+              _choice = withdrawalResponse.Choice;
+              _TS.QueueTransaction(withdrawalResponse.Transaction);
+              _log.Log(withdrawalResponse.Log);
 
-            _choice = withdrawalResponse.Choice;
-            _log.Log(withdrawalResponse.Log);
+              break;
+            }
+            createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
+            if (createNewAccount)
+            {
+              _previousChoice = UserChoice.MakeWithdrawal;
+              _choice = ConsoleIO.CustomerCreateAccount(_user);
+              break;
+            }
+            _choice = _previousChoice;
+            break;
+
+
+          case UserChoice.MakeTransfer:
+            _previousChoice = UserChoice.CustomerMenu;
+
+            haveAccounts = _user.CheckIfUserHaveAnyAccounts();
+
+            if (haveAccounts)
+            {
+              string targetAccountNumber = ConsoleIO.TransferTargetAccount(_user);
+              AccountBase targetAccount = _DB.FindAccountByAccountNumber(targetAccountNumber);
+              UserBase targetUser = _DB.FindUserByAccount(targetAccount);
+              if (targetUser != null)
+              {
+                var transferResponse = _user.MakeTransfer(_userAccounts, targetAccount, targetUser);
+                _choice = transferResponse.Choice;
+                _TS.QueueTransaction(transferResponse.Transaction);
+                _log.Log(transferResponse.Log);
+                break;
+              }
+              ConsoleIO.InformUser("Account number does not exist!");
+              _choice = UserChoice.CustomerMenu;
+              break;
+            }
+            createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
+            if (createNewAccount)
+            {
+              _previousChoice = UserChoice.MakeTransfer;
+              _choice = ConsoleIO.CustomerCreateAccount(_user);
+              break;
+            }
+            _choice = _previousChoice;
             break;
 
           case UserChoice.LoanMoney:// NOT IMPLEMENTED
             _previousChoice = UserChoice.CustomerMenu;
 
-            //transactionLog = METHOD TO RETRIEVE A TRANSACTION HERE
-            //_log.LogEvent(transactionLog);
-            //_user.AddToLog(transactionLog);
+            haveAccounts = _user.CheckIfUserHaveAnyAccounts();
 
-            var loadResponse = _user.LoanMoney();
-            _choice = loadResponse.Choice;
-            _log.Log(loadResponse.Log);
+            if (haveAccounts)
+            {
+              var loanResponse = _user.LoanMoney(_userAccounts);
+              _choice = loanResponse.Choice;
+              _TS.QueueTransaction(loanResponse.Transaction);
+              _log.Log(loanResponse.Log);
+              break;
+            }
+            createNewAccount = ConsoleIO.AskUser("You don't have any accounts yet.", "Would you like to add one? ");
+            if (createNewAccount)
+            {
+              _previousChoice = UserChoice.LoanMoney;
+              _choice = ConsoleIO.CustomerCreateAccount(_user);
+              break;
+            }
+            _choice = _previousChoice;
             break;
+
 
           case UserChoice.ShowLog:
             _previousChoice = UserChoice.CustomerMenu;
-            _choice = ConsoleIO.CustomerLog(_user);
+            List<EventLog> userLogs = _user.UserLog.GetUserLogs(_user.Username);
+            _choice = ConsoleIO.CustomerLog(_user, userLogs);
             break;
 
           case UserChoice.Back:
@@ -291,6 +368,7 @@ namespace GroupProject.App.LogicHandling
           connectionLog = new ConnectionLog(_user.Username, "logged in to the bank application.");
           _log.Log(connectionLog);
           _user.AddToLog(connectionLog);
+          _userAccounts = _DB.LoadUserAccounts(_user.AccountIds);
 
           if (_userType == UserType.Admin)
           {
@@ -309,7 +387,7 @@ namespace GroupProject.App.LogicHandling
             _user.AddToLog(connectionLog);
             return ConsoleIO.WrongLogin($"\nFailed to login! {_user.RemainingAttempts} attempts remaining.");
           }
-          connectionLog = new ConnectionLog("Unkown User", "failed login attempt.");
+          connectionLog = new ConnectionLog("Unknown User", "failed login attempt.");
           _log.Log(connectionLog);
           return _choice = ConsoleIO.WrongLogin($"Failed to login, username not found.");
 

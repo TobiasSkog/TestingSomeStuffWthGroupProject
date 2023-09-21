@@ -166,33 +166,15 @@ namespace GroupProject.App.BankManagement.User
 
       return UserStatuses.FailedLogin;
     }
+    public abstract (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeDeposit(List<AccountBase> sourceAccounts);
 
-    public abstract (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeDeposit();
+
+    public abstract (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeWithdrawal(List<AccountBase> sourceAccounts);
+
+    public abstract (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) LoanMoney(List<AccountBase> sourceAccounts);
+    public abstract (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeTransfer(List<AccountBase> sourceAccounts, AccountBase targetAccounts, UserBase targetUser);
 
 
-    public virtual (UserChoice Choice, TransactionLog Log) MakeWithdrawal()
-    {
-      Console.WriteLine("This is a loan");
-      AccountBase sourceAccount = default;
-      AccountBase targetAccount = default;
-      TransactionLog log = new TransactionLog(Username, "Made a deposit", 4000, sourceAccount.AccountNumber, sourceAccount.AccountNumber);
-
-      AddToLog(log);
-
-      return (Choice: UserChoice.CustomerMenu, Log: log);
-    }
-
-    public virtual (UserChoice Choice, TransactionLog Log) LoanMoney()
-    {
-      Console.WriteLine("This is a loan");
-      AccountBase sourceAccount = default;
-      AccountBase targetAccount = default;
-      TransactionLog log = new TransactionLog(Username, "Made a deposit", 4000, sourceAccount.AccountNumber, sourceAccount.AccountNumber);
-
-      AddToLog(log);
-
-      return (Choice: UserChoice.CustomerMenu, Log: log);
-    }
     public virtual bool CheckIfUserHaveAnyAccounts()
     {
       if (AccountIds.Count == 0 || AccountIds == null)

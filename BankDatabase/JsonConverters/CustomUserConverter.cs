@@ -1,6 +1,7 @@
 ﻿using GroupProject.App.BankManagement.Account;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
+using GroupProject.App.BankManagement.User.Bank;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.BankDatabase.EventLogs.Events;
 using Newtonsoft.Json;
@@ -18,7 +19,8 @@ public class CustomUserConverter : JsonConverter<UserBase>
       0 => typeof(UserCustomer),
       1 => typeof(UserCustomer),
       2 => typeof(UserAdmin),
-      _ => throw new NotSupportedException("Unkown UserType")
+      3 => typeof(Bank),
+      _ => throw new NotSupportedException("Unknown UserType")
     };
 
     UserBase result = (UserBase)Activator.CreateInstance(targetType);

@@ -61,25 +61,24 @@ namespace GroupProject.App.BankManagement.User.Admin
       return ConsoleIO.AdminCurrencyExchangeMenu(this);
     }
 
-    public override (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeDeposit()
+    public override (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeDeposit(List<AccountBase> sourceAccounts)
     {
-      //AccountBase? sourceAccount;
-      TransactionLog log;
+      throw new NotImplementedException();
+    }
 
-      var sourceAccount = ConsoleIO.GetSpecificAccount(this);
-      if (sourceAccount == null)
-      {
-        log = new TransactionLog(Username, "FailedToMakeDeposit", 0, "Account Not Found", "Account Not Found");
-        return (Choice: UserChoice.CustomerMenu, Transaction: null, Log: log);
-      }
-      decimal amount = ConsoleIO.AmountOfMoney("Amount to deposit");
-      AccountTransaction transaction = sourceAccount.DepositMoney(this, amount);
+    public override (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeWithdrawal(List<AccountBase> sourceAccounts)
+    {
+      throw new NotImplementedException();
+    }
 
-      log = new TransactionLog(Username, "Made a deposit", amount, sourceAccount.AccountNumber, sourceAccount.AccountNumber);
+    public override (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) LoanMoney(List<AccountBase> sourceAccounts)
+    {
+      throw new NotImplementedException();
+    }
 
-      AddToLog(log);
-
-      return (Choice: UserChoice.CustomerMenu, Transaction: transaction, Log: log);
+    public override (UserChoice Choice, AccountTransaction Transaction, TransactionLog Log) MakeTransfer(List<AccountBase> sourceAccounts, AccountBase targetAccount, UserBase targetUser)
+    {
+      throw new NotImplementedException();
     }
   }
 }

@@ -3,6 +3,7 @@ using GroupProject.App.BankManagement.Account.BankAccounts;
 using GroupProject.App.BankManagement.Account.BankAccounts.BankTransactions;
 using GroupProject.App.BankManagement.User;
 using GroupProject.App.BankManagement.User.Admin;
+using GroupProject.App.BankManagement.User.Bank;
 using GroupProject.App.BankManagement.User.Customer;
 using GroupProject.App.ConsoleHandling;
 using GroupProject.App.LogicHandling;
@@ -24,13 +25,9 @@ namespace GroupProject.BankDatabase
     private Logger _Logger { get; set; }
     private List<UserBase> _users { get; set; }
     private List<AccountBase> _accounts { get; set; }
-    private TransactionScheduler _transactionScheduler { get; set; }
-
-    public Database(Logger logger, int transactionUpdateIntervall = 15)
+    public Database(Logger logger)
     {
-
       _Logger = logger;
-      _transactionScheduler = new TransactionScheduler(transactionUpdateIntervall, _Logger, this); // CHANGE FROMSECNODS TO FROMMINUTES
       _PATHUSERS = Path.Combine(_BASEFOLDER, _USERFILE);
       _PATHACCS = Path.Combine(_BASEFOLDER, _ACCOUNTFILE);
 
@@ -88,10 +85,10 @@ namespace GroupProject.BankDatabase
       SaveData();
     }
 
-    internal void ScheduleTransaction(AccountTransaction transaction)
-    {
-      _transactionScheduler.QueueTransaction(transaction);
-    }
+    //internal void ScheduleTransaction(AccountTransaction transaction)
+    //{
+    //  _transactionScheduler.QueueTransaction(transaction);
+    //}
     internal void AddNewUserToDatabase(UserBase user)
     {
       _users.Add(user);
@@ -172,7 +169,67 @@ namespace GroupProject.BankDatabase
       }
     }
 
-    internal static List<AccountBase> LoadUserAccounts(List<string> accountIds)
+    internal UserBase FindUserByAccount(AccountBase userAccount)
+    {
+      if (userAccount != null)
+      {
+        using (StreamReader sr = new StreamReader(_PATHUSERS))
+        {
+          var jsonUsers = sr.ReadToEnd();
+          List<UserBase>? users = JsonConvert.DeserializeObject<List<UserBase>>(jsonUsers, new JsonSerializerSettings
+          {
+            TypeNameHandling = TypeNameHandling.None,
+            Converters = { new CustomUserConverter() }
+          });
+          if (users != null)
+          {
+            foreach (var user in users)
+            {
+              if (user.AccountIds.Contains(userAccount.AccountId))
+              {
+                return user;
+              }
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+    internal AccountBase FindAccountByAccountNumber(string accountNumber)
+    {
+      try
+      {
+
+        using (StreamReader sr = new StreamReader(_PATHACCS))
+        {
+          var jsonAccounts = sr.ReadToEnd();
+          List<AccountBase>? accounts = JsonConvert.DeserializeObject<List<AccountBase>>(jsonAccounts, new JsonSerializerSettings
+          {
+            TypeNameHandling = TypeNameHandling.Objects,
+            Converters = { new CustomAccountConverter() }
+          });
+
+
+          foreach (var account in accounts)
+          {
+            if (account.AccountNumber == accountNumber)
+            {
+              return account;
+            }
+
+          }
+          return null;
+        }
+      }
+      catch (Exception ex)
+      {
+        ExceptionHelper.ExceptionDetails(ex);
+        Console.ReadKey();
+        return null;
+      }
+    }
+    internal List<AccountBase> LoadUserAccounts(List<string> accountIds)
     {
       try
       {
@@ -242,28 +299,40 @@ namespace GroupProject.BankDatabase
       }
     }
 
-    internal void UpdateAccountDatabase(AccountBase account)
+    internal void UpdateAccountDatabase(List<AccountBase> accountsToUpdate)
     {
       if (_accounts == null)
       {
         _accounts = new List<AccountBase>();
       }
-      int existingAccountIndex = _accounts.FindIndex(a => a.AccountId == account.AccountId);
-      if (existingAccountIndex != -1)
+
+      foreach (AccountBase account in accountsToUpdate)
       {
-        _accounts[existingAccountIndex] = account;
-      }
-      else
-      {
-        _accounts.Add(account);
+
+        int existingAccountIndex = _accounts.FindIndex(a => a.AccountId == account.AccountId);
+        if (existingAccountIndex != -1)
+        {
+          _accounts[existingAccountIndex] = account;
+        }
+        else
+        {
+          _accounts.Add(account);
+        }
       }
 
       SaveData(false, true);
     }
     private static List<UserBase> InitializeDatabaseWithDefaultData()
     {
+      string salt = BCrypt.Net.BCrypt.GenerateSalt();
+      string hashedpw = BCrypt.Net.BCrypt.HashPassword("Bolibompa" + salt);
+      List<string> accountIds = new() { "1", "2", "3", "4", "5" };
+      List<string> logIds = new();
+      logIds.AddRange(accountIds);
+
       List<UserBase> createdUserList = new List<UserBase>()
       {
+        new Bank("Bank", "Bank", "BanK", salt, hashedpw, 3, "1", "1", DateTime.MinValue, UserType.Bank, UserStatuses.Active, accountIds, logIds),
         new UserAdmin(   "Tobias", "Skog"    , "adminTobias", "password", "912632161363", new DateTime(1991, 10, 28), UserType.Admin   ),
         new UserAdmin(   "Aldor",  "Admin"   , "adminAldor" , "password", "126261236243", new DateTime(1980, 10, 21), UserType.Admin   ),
         new UserAdmin(   "Reidar", "Admin"   , "adminReidar", "password", "643621611212", new DateTime(1980, 10, 21), UserType.Admin   ),
@@ -281,9 +350,15 @@ namespace GroupProject.BankDatabase
 
     private static List<AccountBase> InitializeDatabaseWithDefaultAccounts()
     {
+
+      decimal bankCashDhorra = 2146233060;
       List<AccountBase> createdAccountList = new List<AccountBase>()
       {
-        new CheckingsAccount(AccountStatuses.Active, AccountTypes.Checking, 1000000000M, CurrencyTypes.SEK)
+        new CheckingsAccount(AccountStatuses.Active, AccountTypes.Checking,"1", "1" ,CurrencyTypes.SEK,bankCashDhorra),
+        new CheckingsAccount(AccountStatuses.Active, AccountTypes.Checking,"2", "2" ,CurrencyTypes.EUR, bankCashDhorra),
+        new CheckingsAccount(AccountStatuses.Active, AccountTypes.Checking,"3", "3" ,CurrencyTypes.USD, bankCashDhorra),
+        new SavingsAccount(AccountStatuses.Active, AccountTypes.Saving,"4", "4" ,CurrencyTypes.SEK, bankCashDhorra),
+        new SavingsAccount(AccountStatuses.Active, AccountTypes.Saving,"5", "5" ,CurrencyTypes.EUR, bankCashDhorra),
       };
 
       return createdAccountList;

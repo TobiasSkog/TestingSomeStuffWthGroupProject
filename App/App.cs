@@ -14,12 +14,13 @@ namespace GroupProject.App
   public static class App
   {
     // TRANSACTIONSCHEDULER CHANGE TIMESPAN.FROMSECONDS TO MINUTES!!!!!!!!
+    private const int transactionUpdateIntervall = 15;
     public static void Run()
     {
       AnsiConsole.Background = Color.Black;
       Logger logger = new();
       Database DB = new(logger);
-      LogicHandler LH = new(DB, logger);
+      LogicHandler LH = new(DB, logger, transactionUpdateIntervall);
 
       UserChoice userChoice;
       do
